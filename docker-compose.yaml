@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  crawler:
+    build:
+      context: ./src/crawler
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/app/data
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  semgrep:
+    build:
+      context: ./src/semgrep
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/app/data
+    networks:
+      - app_network
+    restart: unless-stopped
+
+networks:
+  app_network:
+    driver: bridge
+
