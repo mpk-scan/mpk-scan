@@ -11,7 +11,7 @@ There are 2 main phases of the workflow.
    - Upload all JS from the URLs (both inline and external JS files) to storage (S3 bucket)
   
 3. Semgrep
-  - Take a prefix search as input (https://help.docs.google.com/spreadsheets/) and run [semgrep]([semgrep](https://semgrep.dev/))
+  - Take a prefix search as input (https://help.docs.google.com/spreadsheets/) and run [semgrep](https://semgrep.dev/)
   - Use proprietary and default Semgrep rules (in .yaml files) to configure Semgrep to catch vulnerabilities in minified Javascript
   - Output results, sorted by severity
 
