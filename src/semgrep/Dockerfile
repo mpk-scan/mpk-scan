@@ -6,7 +6,10 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Semgrep version 1.108.0
+RUN pip install semgrep==1.108.0
+
 COPY . .
 
-# # Set the entrypoint to run Semgrep
-# ENTRYPOINT []
+# Set the entrypoint to run Semgrep
+ENTRYPOINT ["semgrep", "--config", "auto"]
