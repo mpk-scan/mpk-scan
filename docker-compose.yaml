@@ -7,21 +7,35 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./data:/app/data
+      - .:/app  # Mount the repository files
     networks:
       - app_network
     restart: unless-stopped
+    env_file:
+      - .env  
 
   semgrep:
     build:
       context: ./src/semgrep
       dockerfile: Dockerfile
-    volumes:
-      - ./data:/app/data
     networks:
       - app_network
     restart: unless-stopped
+    env_file:
+      - .env  
+    entrypoint: ["/bin/sh", "-c", "while true; do sleep 30; done;"]
+
+  dev:
+    image: python:3.12-slim
+    volumes:
+      - .:/app  
+    working_dir: /app
+    networks:
+      - app_network
+    command: /bin/sh -c "apt-get update && apt-get install -y bash vim && pip install --no-cache-dir -r src/crawler/requirements.txt && pip install --no-cache-dir -r src/semgrep/requirements.txt && tail -f /dev/null"
+    env_file:
+      - .env  
 
 networks:
   app_network:
     driver: bridge
-
