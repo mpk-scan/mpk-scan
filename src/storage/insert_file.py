@@ -1,9 +1,8 @@
 import tldextract
 from urllib.parse import urlparse
 
-
 # Function to get insertion path
-def insert(url):
+def insert_js(url):
     return url_to_path(url)
 
 # Function to get insertion external js path
@@ -19,25 +18,24 @@ def insert_inline(url):
 
 # Converts url to custom path for s3 storage
 def url_to_path(url):
-    if "https://" not in url:
-        url = "https://" + url
-    
-    domains = tldextract.extract(url)
+    parsed_url = urlparse(url if "://" in url else "http://" + url)
+    domains = tldextract.extract(parsed_url.netloc)
     domain = domains.domain + "." + domains.suffix
     subdomains = list(reversed(domains.subdomain.split('.')))
-    
+
     subdomain_string = ""
     if subdomains != ['']:
         for subdomain in subdomains:
             subdomain_string += "/|" + subdomain
 
-    url_path = urlparse(url).path
+    url_path = parsed_url.path
     path = domain + subdomain_string + url_path
     return path
 
 # Adds external url to path
 def add_external(path, external_path):
     return path + "/||/" + external_path
+
 # Marks path as inline js
 def add_inline(path):
     return path + "/|||/inline.js"
