@@ -41,7 +41,7 @@ def run_all():
         # Sanitize the file name to avoid issues with reserved characters
         safe_file_key = sanitize_filename(file_key)
         # Temporary file path
-        temp_file_path = os.path.join('/tmp', safe_file_key.replace('/', '_'))
+        temp_file_path = os.path.join('/tmp', safe_file_key)
         
         # Download the file
         s3_manager.download_file(file_key, temp_file_path)
@@ -57,7 +57,9 @@ def run_all():
 
 def sanitize_filename(filename):
     """Sanitize the filename by replacing unsafe characters."""
-    return filename.replace('|', '_')
+    filename.replace('|', '_')
+    filename = filename.replace('/', '_')  # Avoid unintentional subdirectories
+    return filename
 
 def main():
     run_all()
