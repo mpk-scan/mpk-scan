@@ -4,7 +4,7 @@ import time
 import subprocess
 from datetime import datetime
 import boto3
-from S3Manager import S3Manager  # Assuming S3Manager is in a separate file
+from S3Manager import S3Manager
 
 # Set up output directory and log file
 OUTPUT_DIR = 'output'
