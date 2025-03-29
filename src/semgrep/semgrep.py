@@ -6,12 +6,22 @@ from datetime import datetime
 import boto3
 from S3Manager import S3Manager
 
-# Set up output directory and log file
+# ------------------------------------------------------------------------------------------
+
+# Constants
+
 OUTPUT_DIR = 'output'
+
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, current_time)
 os.makedirs(OUTPUT_PATH, exist_ok=True)
+
 LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
+
+RULES_DIRECTORY = 'production_rules'
+
+# ------------------------------------------------------------------------------------------
 
 def log_print(message):
     """Append a log message to the log file in the timestamped directory."""
@@ -20,17 +30,28 @@ def log_print(message):
 
 def run_semgrep_on_file(file_path, output_path):
     """Run Semgrep on the file and save the output to a specified path."""
-    with open(output_path, 'wb') as output_file:
-        process = subprocess.Popen(
-            ['semgrep', file_path, '--config', 'production_rules'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    try:
+        # Run the Semgrep command and capture the output and errors
+        result = subprocess.run(
+            ['semgrep', file_path, '--config', RULES_DIRECTORY],
+            text=True,  # Handle inputs and outputs as text (strings)
+            capture_output=True  # Capture stdout and stderr
         )
-        stdout, stderr = process.communicate()
-        if stderr:
-            log_print("ERROR: ", stderr.decode())
-        output_file.write(stdout)
+        
+        # Check if there were any errors
+        if result.stderr:
+            log_print("ERROR: ", result.stderr)
+
+        # Write the output to the file
+        with open(output_path, 'w') as output_file:
+            output_file.write(result.stdout)
+
+    except Exception as e:
+        # Log any exceptions that might occur during the subprocess execution
+        log_print("An exception occurred: ", str(e))
 
 def run_all():
+    """Run Semgrep on all the files"""
     s3_manager = S3Manager()
 
     file_list = s3_manager.list_files()
@@ -60,6 +81,8 @@ def sanitize_filename(filename):
     filename.replace('|', '_')
     filename = filename.replace('/', '_')  # Avoid unintentional subdirectories
     return filename
+
+# ------------------------------------------------------------------------------------------
 
 def main():
     run_all()
