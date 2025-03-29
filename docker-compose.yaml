@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./data:/app/data
-      - .:/app  # Mount the repository files
+      - .:/app  
     networks:
       - app_network
     restart: unless-stopped
