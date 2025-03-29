@@ -56,7 +56,7 @@ def run_all():
 
     file_list = s3_manager.list_files()
 
-    log_print("Fetched all filenames from the S3 bucket.")
+    log_print("Fetched all filenames from the S3 bucket. Running...")
 
     for file_key in file_list:
         # Sanitize the file name to avoid issues with reserved characters
@@ -75,7 +75,7 @@ def run_all():
         # Delete the temporary file
         os.remove(temp_file_path)
 
-        log_print(f"Semgrep complete for file: {file_key}")
+        # log_print(f"Semgrep complete for file: {file_key}")
 
 def sanitize_filename(filename):
     """Sanitize the filename by replacing unsafe characters and sequences."""
@@ -97,7 +97,9 @@ def sanitize_filename(filename):
 # ------------------------------------------------------------------------------------------
 
 def main():
+    log_print("Running on all files in the s3 bucket")
     run_all()
+    log_print("Finished.")
 
 if __name__ == "__main__":
     main()
