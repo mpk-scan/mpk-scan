@@ -4,7 +4,7 @@ import time
 import subprocess
 from datetime import datetime
 import boto3
-from S3Manager import S3Manager  # Assuming S3Manager is in a separate file
+from S3Manager import S3Manager
 
 # ------------------------------------------------------------------------------------------
 
@@ -61,8 +61,9 @@ def run_all():
     for file_key in file_list:
         # Sanitize the file name to avoid issues with reserved characters
         safe_file_key = sanitize_filename(file_key)
+
         # Temporary file path
-        temp_file_path = os.path.join('/tmp', safe_file_key.replace('/', '_'))
+        temp_file_path = os.path.join('/tmp', safe_file_key)
         
         # Download the file
         s3_manager.download_file(file_key, temp_file_path)
@@ -77,10 +78,21 @@ def run_all():
         log_print(f"Semgrep complete for file: {file_key}")
 
 def sanitize_filename(filename):
-    """Sanitize the filename by replacing unsafe characters."""
-    return filename.replace('|', '_')
-
-# ------------------------------------------------------------------------------------------
+    """Sanitize the filename by replacing unsafe characters and sequences."""
+    replacements = {
+        '/': '_',
+        '|': '_',
+        # Avoid path traversal for the temporary file
+        '../': '',
+        '..\\': '',
+        '..\/': ''
+    }
+    
+    # Iterate over the dictionary and replace each key with its associated value
+    for old, new in replacements.items():
+        filename = filename.replace(old, new)
+    
+    return filename
 
 # ------------------------------------------------------------------------------------------
 
