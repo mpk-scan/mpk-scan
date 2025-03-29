@@ -1,14 +1,15 @@
-# Semgrep
+# Semgrep API
 
 # Purpose
 
-This folder is an API for calling semgrep on the files.
+This directory is an API for calling semgrep on the files.
 
-The analyze_prefix_search.py file should be implemented to take a prefix search as input
+TODO: The semgrep.py file should be implemented to take a prefix search as input
 
 - ex. 'https://google.com/|docs/|help/spreadsheets'
 
 and should fetch all files that fit that prefix (using the storage directory) and run semgrep on them.
 
+# Sources
 
-report_generator can be used to analyze all the output from the prefix search
+https://boto3.amazonaws.com/v1/documentation/api/latest/guide/paginators.html#creating-paginators
