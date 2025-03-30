@@ -8,8 +8,6 @@ from storage.s3_manager import S3Manager
 
 # ------------------------------------------------------------------------------------------
 
-# Constants
-
 OUTPUT_DIR = 'semgrep/output'
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -20,6 +18,7 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
 
 RULES_DIRECTORY = "semgrep/production_rules"
+
 # ------------------------------------------------------------------------------------------
 
 def log_print(message):
@@ -42,9 +41,10 @@ def run_semgrep_on_file(file_path, output_path):
         if result.stderr:
             log_print("ERROR: " + str(result.stderr))
 
-        # Write the output to the file
-        with open(output_path, 'w') as output_file:
-            output_file.write(result.stdout)
+        # Write the output to the file ONLY if it finds any semgrep matches
+        if result.stdout:
+            with open(output_path, 'w') as output_file:
+                output_file.write(result.stdout)
 
     except Exception as e:
         # Log any exceptions that might occur during the subprocess execution
