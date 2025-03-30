@@ -48,7 +48,7 @@ def run_semgrep_on_file(file_path, output_path):
 
     except Exception as e:
         # Log any exceptions that might occur during the subprocess execution
-        log_print("An exception occurred: ", str(e))
+        log_print("An exception occurred: " + str(e))
 
 def run_all():
     """Run Semgrep on all the files"""
