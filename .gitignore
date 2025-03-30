@@ -2,3 +2,4 @@ src/semgrep/semgrepenv/
 src/semgrep/__pycache__/
 src/semgrep/output/
 src/storage/__pycache__/
+tests/__pycache__/
