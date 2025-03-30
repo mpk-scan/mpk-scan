@@ -10,7 +10,7 @@ rules:
     🚨 Insecure origin check detected!
     - This allows an attacker to spoof an origin to pass the weak check
     - Use `if ($OBJ.origin === "https://trusted.com")` instead.
-  patterns:
+  pattern-either:
    - pattern-regex: \.origin\.includes\s*\(\s*["'][^"']+["']\s*\) # weak includes
    - pattern-regex: \.origin\.startsWith\s*\(\s*["'][^"']+["']\s*\) # weak starts with
    - pattern-regex: \.origin\.indexOf\s*\(\s*["'][^"']+["']\s*\) # weak index of
