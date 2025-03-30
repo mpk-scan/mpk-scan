@@ -4,8 +4,7 @@ import time
 import subprocess
 from datetime import datetime
 import boto3
-from S3Manager import S3Manager
-from S3Manager import S3Manager
+from s3_manager import S3Manager
 
 # ------------------------------------------------------------------------------------------
 
@@ -41,7 +40,7 @@ def run_semgrep_on_file(file_path, output_path):
         
         # Check if there were any errors
         if result.stderr:
-            log_print("ERROR: ", result.stderr)
+            log_print("ERROR: " + str(result.stderr))
 
         # Write the output to the file
         with open(output_path, 'w') as output_file:
@@ -69,6 +68,8 @@ def run_all():
         
         # Download the file
         s3_manager.download_file(file_key, temp_file_path)
+
+        print("temp path" + temp_file_path)
         
         # Run Semgrep and output the results to the specified output directory
         output_file_path = os.path.join(OUTPUT_PATH, f"{os.path.basename(safe_file_key)}_result.txt")
