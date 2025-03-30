@@ -1,56 +1,17 @@
 rules:
-- id: bad-origin-checks.weak-includes
+- id: bad-origin-checks
   metadata:
     category: bad-origin-checks
-    subcategory: weak-includes
     cwe: "CWE-346: Origin Validation Error"
     security: "high"
   languages: [javascript, typescript]
   severity: ERROR
   message: |
-    🚨 Insecure `event.origin.includes("$DOMAIN")` check detected!
-    - `includes("https://trusted.com")` is vulnerable (matches `https://trusted.com.evil.com`).
+    🚨 Insecure origin check detected!
+    - This allows an attacker to spoof an origin to pass the weak check
     - Use `if ($OBJ.origin === "https://trusted.com")` instead.
-  pattern-regex: \.origin\.includes\s*\(\s*["'][^"']+["']\s*\)
-
-- id: bad-origin-checks.weak-startswith
-  metadata:
-    category: bad-origin-checks
-    subcategory: weak-startswith
-    cwe: "CWE-346: Origin Validation Error"
-    security: "high"
-  languages: [javascript, typescript]
-  severity: ERROR
-  message: |
-    🚨 Insecure `event.origin.startsWith("$DOMAIN")` check detected!
-    - `startsWith("https://trusted.com")` is vulnerable (matches `https://trusted.com.evil.com`).
-    - Use `if ($OBJ.origin === "https://trusted.com")` instead.
-  pattern-regex: \.origin\.startsWith\s*\(\s*["'][^"']+["']\s*\)
-
-- id: bad-origin-checks.weak-indexof
-  metadata:
-    category: bad-origin-checks
-    subcategory: weak-indexof
-    cwe: "CWE-346: Origin Validation Error"
-    security: "high"
-  languages: [javascript, typescript]
-  severity: ERROR
-  message: |
-    🚨 Insecure `event.origin.indexOf("$DOMAIN") !== -1` check detected!
-    - `indexOf("https://trusted.com")` is vulnerable (matches `https://trusted.com.evil.com`).
-    - Use `if ($OBJ.origin === "https://trusted.com")` instead.
-  pattern-regex: \.origin\.indexOf\s*\(\s*["'][^"']+["']\s*\)
-
-- id: bad-origin-checks.weak-endswith
-  metadata:
-    category: bad-origin-checks
-    subcategory: weak-endswith
-    cwe: "CWE-346: Origin Validation Error"
-    security: "high"
-  languages: [javascript, typescript]
-  severity: ERROR
-  message: |
-    🚨 Insecure `event.origin.endsWith("$DOMAIN")` check detected! This allows an attacker to bypass security if "$DOMAIN" is too broad.
-    - `endsWith("trusted.com")` is dangerous (matches `evil-trusted.com`).
-    - Consider `if (event.origin === "https://trusted.com")` or `endsWith(".trusted.com")` instead.
-  pattern-regex: \.origin\.endsWith\(["'][a-zA-Z0-9-]+\.[a-zA-Z0-9]+["']\)
+  patterns:
+   - pattern-regex: \.origin\.includes\s*\(\s*["'][^"']+["']\s*\) # weak includes
+   - pattern-regex: \.origin\.startsWith\s*\(\s*["'][^"']+["']\s*\) # weak starts with
+   - pattern-regex: \.origin\.indexOf\s*\(\s*["'][^"']+["']\s*\) # weak index of
+   - pattern-regex: \.origin\.endsWith\(["'][a-zA-Z0-9-]+\.[a-zA-Z0-9]+["']\) # weak ends with

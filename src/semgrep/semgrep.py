@@ -4,13 +4,13 @@ import time
 import subprocess
 from datetime import datetime
 import boto3
-from s3_manager import S3Manager
+from storage.s3_manager import S3Manager
 
 # ------------------------------------------------------------------------------------------
 
 # Constants
 
-OUTPUT_DIR = 'output'
+OUTPUT_DIR = 'semgrep/output'
 
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -19,21 +19,21 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
 
-RULES_DIRECTORY = 'production_rules'
-
+RULES_DIRECTORY = "semgrep/production_rules"
 # ------------------------------------------------------------------------------------------
 
 def log_print(message):
     """Append a log message to the log file in the timestamped directory."""
     with open(LOG_FILE, 'a') as log_file:
         log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+    print(message)
 
 def run_semgrep_on_file(file_path, output_path):
     """Run Semgrep on the file and save the output to a specified path."""
     try:
         # Run the Semgrep command and capture the output and errors
         result = subprocess.run(
-            ['semgrep', file_path, '--config', RULES_DIRECTORY],
+            ['semgrep', file_path, '--config', RULES_DIRECTORY, '--no-git-ignore'],
             text=True,  # Handle inputs and outputs as text (strings)
             capture_output=True  # Capture stdout and stderr
         )
@@ -86,9 +86,7 @@ def sanitize_filename(filename):
         '/': '_',
         '|': '_',
         # Avoid path traversal for the temporary file
-        '../': '',
-        '..\\': '',
-        '..\/': ''
+        '..': '',
     }
     
     # Iterate over the dictionary and replace each key with its associated value
@@ -100,6 +98,8 @@ def sanitize_filename(filename):
 # ------------------------------------------------------------------------------------------
 
 def main():
+    print(current_time)
+    print(RULES_DIRECTORY)
     log_print("Running on all files in the s3 bucket")
     run_all()
     log_print("Finished.")
