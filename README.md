@@ -10,10 +10,10 @@ There are 2 main phases of the workflow.
    - Find valid URLs
    - Upload all JS from the URLs (both inline and external JS files) to storage (S3 bucket)
   
-3. Semgrep
-  - Take a prefix search as input (https://help.docs.google.com/spreadsheets/) and run [semgrep](https://semgrep.dev/)
-  - Use proprietary and default Semgrep rules (in .yaml files) to configure Semgrep to catch vulnerabilities in minified Javascript
-  - Output results, sorted by severity
+3. Semgrep API
+  - Runs Semgrep (with the custom ruleset) on the files in the bucket
+  - Can take a prefix search as input (https://help.docs.google.com/spreadsheets/) and run [semgrep](https://semgrep.dev/)
+  - Output results
 
 # Functionality
 The desired functionality will have the web crawler running indefinitely to fill up the S3 bucket with JS from the web.
