@@ -51,7 +51,6 @@ def process_url(url):
 
     response = session.get(url, timeout=5)
     if response.status_code != 200:
-        print(f"Failed to fetch {url}: {response.status_code}")
         return
     content_type = response.headers.get('Content-Type', '')
 
@@ -76,7 +75,6 @@ def process_url(url):
                 if external_url not in external_files:
                     response = requests.get(external_url)
                     if response.status_code != 200:
-                        print(f"Failed to fetch {url}: {response.status_code}")
                         return  
                     content_type = response.headers.get('Content-Type', '')
                     if external_url.endswith('.js') or 'javascript' in content_type:
@@ -87,7 +85,6 @@ def process_url(url):
 
 # Save temp file and upload to s3
 def save_js_file(temp_name, content, filename):   
-    print(f"Saving JS file: {temp_name}")
     filepath = os.path.join(OUTPUT_DIR, temp_name)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(content)
@@ -111,13 +108,8 @@ def main():
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             executor.map(process_url, urls)
 
-    # For debuging and local testing (Use 1 domain)
-    with open("output.txt", "w", encoding="utf-8") as f:
-        for item in files:
-            f.write(f"{item}\n")
-    with open("hakrawler.txt", "w", encoding="utf-8") as f:
-        for item in urls:
-            f.write(f"{item}\n")
+    print("Complete!")
+
 
 
 if __name__ == "__main__":
