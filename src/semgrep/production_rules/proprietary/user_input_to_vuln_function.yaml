@@ -20,6 +20,7 @@ rules:
           - pattern: $USER_INPUT = decodeURIComponent(location.search)
           - pattern: $USER_INPUT = document.getElementById(...).value
           - pattern: $USER_INPUT = new URLSearchParams(...).get(...)
+          - pattern: $USER_INPUT = new URLSearchParams(...).getAll(...)
           - pattern: new URLSearchParams(...).get(...)
 
     pattern-sinks:
@@ -34,7 +35,14 @@ rules:
           - pattern: setInterval($USER_INPUT, ...)
           - pattern: $IFRAME.srcdoc = $USER_INPUT
 
-
+    pattern-propagators:
+      - pattern: $USER_INPUT.forEach($ITEM => { ... })
+        from: $USER_INPUT
+        to: $ITEM
+      - pattern: $USER_INPUT.map($ITEM => { ... })
+        from: $USER_INPUT
+        to: $ITEM
+    
     pattern-sanitizers:
       - pattern-either:
           - pattern: DOMPurify.sanitize($USER_INPUT)
