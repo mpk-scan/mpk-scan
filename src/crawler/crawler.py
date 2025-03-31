@@ -20,6 +20,8 @@ session = requests.Session()
 
 files = []
 
+external_files = []
+
 
 def run_hakrawler(domain):
     """Runs Hakrawler with subdomain exploration enabled."""
@@ -73,20 +75,22 @@ def process_url(url):
         
         # Fetch external JS
         for js_url in external_js_links:
-            external_url = urljoin(url, js_url)  # Resolve relative URLs
-            response = requests.get(external_url)
-            if response.status_code != 200:
-                print(f"Failed to fetch {url}: {response.status_code}")
-                return  
-            content_type = response.headers.get('Content-Type', '')
-            if external_url.endswith('.js') or 'javascript' in content_type:
 
-                # 3 lines below for local use
-                files.append(["EXTERNAL" ,insert_with_external(url, external_url),url ,external_url])
-                full_filename = sanitize_filename("EXTERNAL", url, external_url)
-                save_js_file(full_filename, response.text)
-                 # s3_external_filename = insert_with_external(url, external_url)
-                 # upload_to_s3(s3_external_filename, inline_js)  # Commented out for testing
+                external_url = urljoin(url, js_url)  # Resolve relative URLs
+                if external_url not in external_files:
+                    response = requests.get(external_url)
+                    if response.status_code != 200:
+                        print(f"Failed to fetch {url}: {response.status_code}")
+                        return  
+                    content_type = response.headers.get('Content-Type', '')
+                    if external_url.endswith('.js') or 'javascript' in content_type:
+                        external_files.append(external_url)
+                        # 3 lines below for local use
+                        files.append(["EXTERNAL" ,insert_with_external(url, external_url),url ,external_url])
+                        full_filename = sanitize_filename("EXTERNAL", url, external_url)
+                        save_js_file(full_filename, response.text)
+                        # s3_external_filename = insert_with_external(url, external_url)
+                        # upload_to_s3(s3_external_filename, inline_js)  # Commented out for testing
 
 # For debuging and local testing
 def save_js_file(filename, content):   
@@ -120,6 +124,7 @@ def main():
 
     urls = [] # For printing hackrawler output, for local use
     for domain in target_domains:
+        external_files = []
         urls = run_hakrawler(domain)
         print(f"Processing: {domain}")
         # Process URLs in parallel (Change workers if needed)
