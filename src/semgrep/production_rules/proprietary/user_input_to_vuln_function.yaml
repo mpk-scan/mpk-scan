@@ -1,0 +1,41 @@
+rules:
+  - id: html-inject
+    metadata:
+      category: security
+      subcategory: html-injection
+      impact: high
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING
+    message: |
+      Possible HTML Injection vulnerability
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $USER_INPUT = decodeURIComponent(document.location.hash.substring($NUM))
+          - pattern: $USER_INPUT = decodeURIComponent(location.hash.substring($NUM))
+          - pattern: $USER_INPUT = decodeURIComponent($ANY) # might be prone to false positives, but also a good place to look
+          - pattern: $USER_INPUT = decodeURIComponent(document.location.search)
+          - pattern: $USER_INPUT = decodeURIComponent(location.search)
+          - pattern: $USER_INPUT = document.getElementById(...).value
+          - pattern: $USER_INPUT = new URLSearchParams(...).get(...)
+          - pattern: new URLSearchParams(...).get(...)
+
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $ELEMENT.innerHTML = $USER_INPUT
+          - pattern: setAttribute($ATTRIBUTE, $USER_INPUT)
+          - pattern: $ELEMENT.setAttribute($ATTRIBUTE, $USER_INPUT)
+          - pattern: $ELEMENT.insertAdjacentHTML($LOCATION, $USER_INPUT)
+          - pattern: document.write($USER_INPUT)
+          - pattern: eval($USER_INPUT)
+          - pattern: setTimeout($USER_INPUT, ...)
+          - pattern: setInterval($USER_INPUT, ...)
+          - pattern: $IFRAME.srcdoc = $USER_INPUT
+
+
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: DOMPurify.sanitize($USER_INPUT)
+          - pattern: $S.sanitize($USER_INPUT)
