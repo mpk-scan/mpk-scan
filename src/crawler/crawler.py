@@ -10,8 +10,10 @@ sys.path.append(os.path.abspath("../storage"))
 
 from name_file import name_js, name_with_external, name_inline
 
+from s3_manager import S3Manager
+
 # Configuration
-OUTPUT_DIR = "hackrawler_output"
+OUTPUT_DIR = "temp"
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -22,6 +24,7 @@ files = []
 
 external_files = []
 
+s3 = S3Manager()
 
 def run_hakrawler(domain):
     """Runs Hakrawler with subdomain exploration enabled."""
@@ -35,7 +38,7 @@ def run_hakrawler(domain):
     )
 
     urls = {
-        line.strip()
+        line.strip().rstrip('/')
         for line in result.stdout.splitlines()
         if line.strip().startswith(("http://", "https://"))
     }
@@ -54,29 +57,22 @@ def process_url(url):
 
     #If url is a js file
     if url.endswith('.js') or 'javascript' in content_type:
-        # 4 lines below for local use
-        filename = sanitize_filename("REGULAR", url)
-        save_js_file(filename, response.text)
-        files.append(name_js(url))
-        # s3_filename = insert_js(url)
-        # upload_to_s3(s3_filename, response.text)  # Commented out for testing leverage this api
-
+        temp_filename = str(hash(url))
+        save_js_file(temp_filename, response.text, name_js(url))
+        
     # If url is other
     elif 'text/html' in content_type:
         inline_js, external_js_links = extract_javascript(url, response.text)
         # Fetch inline JS
         if inline_js:
-            # 3 lines below for local use
-            filename = sanitize_filename("INLINE", url)
-            save_js_file(filename, inline_js)
-            files.append(name_inline(url))
-            # s3_inline_filename = insert_inline(url)
-            # upload_to_s3(s3_inline_filename, inline_js)  # Commented out for testing
+            temp_filename = str(hash(url)) 
+            save_js_file(temp_filename, inline_js, name_inline(url))
         
         # Fetch external JS
         for js_url in external_js_links:
-
                 external_url = urljoin(url, js_url)  # Resolve relative URLs
+
+                # Check for duplicate external
                 if external_url not in external_files:
                     response = requests.get(external_url)
                     if response.status_code != 200:
@@ -85,43 +81,29 @@ def process_url(url):
                     content_type = response.headers.get('Content-Type', '')
                     if external_url.endswith('.js') or 'javascript' in content_type:
                         external_files.append(external_url)
-                        # 3 lines below for local use
-                        files.append(["EXTERNAL" ,name_with_external(url, external_url),url ,external_url])
-                        full_filename = sanitize_filename("EXTERNAL", url, external_url)
-                        save_js_file(full_filename, response.text)
-                        # s3_external_filename = insert_with_external(url, external_url)
-                        # upload_to_s3(s3_external_filename, inline_js)  # Commented out for testing
+                        temp_filename = str(hash(url+external_url))
+                        save_js_file(temp_filename, response.text, name_with_external(url, external_url))
 
-# For debuging and local testing
-def save_js_file(filename, content):   
-    print(f"Saving JS file: {filename}")
-    filepath = os.path.join(OUTPUT_DIR, filename)
+
+# Save temp file and upload to s3
+def save_js_file(temp_name, content, filename):   
+    print(f"Saving JS file: {temp_name}")
+    filepath = os.path.join(OUTPUT_DIR, temp_name)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(content)
-
-# For debuging and local testing
-def sanitize_filename(prefix, base_url, extra_url=None):
-    def get_safe_parts(url):
-        parsed = urlparse(url)
-        scheme = parsed.scheme or 'http'
-        netloc = parsed.netloc or 'nohost'
-        path = parsed.path.strip('/').replace('/', '_') or 'root'
-        return f"{scheme}_{netloc}_{path}"
-    
-    filename = f"{prefix}___{get_safe_parts(base_url)}"
-    
-    if extra_url:
-        filename += f"____{get_safe_parts(extra_url)}"
-
-    return filename
-
+    s3.upload_file(filepath, filename)
+    os.remove(filepath)
 
 
 def main():
-    target_domains = [
-        "https://demo.testfire.net/"
-    ]
+   
+    with open("urls.txt", "r") as f:
+        lines = f.readlines()
 
+    target_domains = [line.strip() for line in lines]
+
+    print(target_domains)
+    
     urls = [] # For printing hackrawler output, for local use
     for domain in target_domains:
         external_files = []
