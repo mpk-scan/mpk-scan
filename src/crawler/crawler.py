@@ -101,8 +101,6 @@ def main():
         lines = f.readlines()
 
     target_domains = [line.strip() for line in lines]
-
-    print(target_domains)
     
     urls = [] # For printing hackrawler output, for local use
     for domain in target_domains:
