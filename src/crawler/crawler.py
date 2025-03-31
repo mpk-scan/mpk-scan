@@ -8,7 +8,7 @@ from html_parser import extract_javascript
 
 sys.path.append(os.path.abspath("../storage"))
 
-from insert_file import insert_js, insert_with_external, insert_inline
+from name_file import name_js, name_with_external, name_inline
 
 # Configuration
 OUTPUT_DIR = "hackrawler_output"
@@ -57,7 +57,7 @@ def process_url(url):
         # 4 lines below for local use
         filename = sanitize_filename("REGULAR", url)
         save_js_file(filename, response.text)
-        files.append(insert_js(url))
+        files.append(name_js(url))
         # s3_filename = insert_js(url)
         # upload_to_s3(s3_filename, response.text)  # Commented out for testing leverage this api
 
@@ -69,7 +69,7 @@ def process_url(url):
             # 3 lines below for local use
             filename = sanitize_filename("INLINE", url)
             save_js_file(filename, inline_js)
-            files.append(insert_inline(url))
+            files.append(name_inline(url))
             # s3_inline_filename = insert_inline(url)
             # upload_to_s3(s3_inline_filename, inline_js)  # Commented out for testing
         
@@ -86,7 +86,7 @@ def process_url(url):
                     if external_url.endswith('.js') or 'javascript' in content_type:
                         external_files.append(external_url)
                         # 3 lines below for local use
-                        files.append(["EXTERNAL" ,insert_with_external(url, external_url),url ,external_url])
+                        files.append(["EXTERNAL" ,name_with_external(url, external_url),url ,external_url])
                         full_filename = sanitize_filename("EXTERNAL", url, external_url)
                         save_js_file(full_filename, response.text)
                         # s3_external_filename = insert_with_external(url, external_url)
