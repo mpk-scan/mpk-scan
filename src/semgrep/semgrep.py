@@ -16,7 +16,7 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
 
-RULES_DIRECTORY = "semgrep/production_rules"
+RULES_DIRECTORY = "production_rules"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STORAGE_PATH = os.path.join(SCRIPT_DIR, "..", "storage")
@@ -32,12 +32,12 @@ def log_print(message):
         log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
     print(message)
 
-def run_semgrep_on_file(file_path, output_path):
+def run_semgrep_on_file(file_path, output_path, file_type_and_name):
     """Run Semgrep on the file and save the output to a specified path."""
     try:
         # Run the Semgrep command and capture the output and errors
         result = subprocess.run(
-            ['semgrep', file_path, '--config', RULES_DIRECTORY, '--no-git-ignore'],
+            ['semgrep', file_path, '--config', RULES_DIRECTORY, '--no-git-ignore', "--no-ignore"],
             text=True,  # Handle inputs and outputs as text (strings)
             capture_output=True  # Capture stdout and stderr
         )
@@ -49,6 +49,14 @@ def run_semgrep_on_file(file_path, output_path):
         # Write the output to the file ONLY if it finds any semgrep matches
         if result.stdout:
             with open(output_path, 'w') as output_file:
+                if file_type_and_name[0] == 0: # JS
+                    filetype = '.js'
+                elif file_type_and_name[0] == 1: # External
+                    filetype = 'external'
+                elif file_type_and_name[0] == 2: # Inline
+                    filetype = 'inline'
+                output_file.write(f"Filetype is: {filetype}")
+                output_file.write(f"\nURL: {file_type_and_name[1]}\n")
                 output_file.write(result.stdout)
 
     except Exception as e:
@@ -64,41 +72,23 @@ def run_all():
     log_print("Fetched all filenames from the S3 bucket. Running...")
 
     for file_key in file_list:
-        # Sanitize the file name to avoid issues with reserved characters
-        safe_file_key = sanitize_filename(file_key)
+
+        hash_file_key = str(hash(file_key)) + '.js'
 
         # Temporary file path
-        temp_file_path = os.path.join('/tmp', safe_file_key)
-        temp_file_path = os.path.join('/tmp', safe_file_key)
+        temp_file_path = os.path.join('/tmp', hash_file_key)
         
         # Download the file
-        s3_manager.download_file(file_key, temp_file_path)
-
-        print("temp path" + temp_file_path)
+        file_type_and_name = s3_manager.download_file(file_key, temp_file_path)
         
         # Run Semgrep and output the results to the specified output directory
-        output_file_path = os.path.join(OUTPUT_PATH, f"{os.path.basename(safe_file_key)}_result.txt")
-        run_semgrep_on_file(temp_file_path, output_file_path)
+        output_file_path = os.path.join(OUTPUT_PATH, f"{os.path.basename(hash_file_key)}_result.txt")
+        run_semgrep_on_file(temp_file_path, output_file_path, file_type_and_name)
         
         # Delete the temporary file
         os.remove(temp_file_path)
 
         # log_print(f"Semgrep complete for file: {file_key}")
-
-def sanitize_filename(filename):
-    """Sanitize the filename by replacing unsafe characters and sequences."""
-    replacements = {
-        '/': '_',
-        '|': '_',
-        # Avoid path traversal for the temporary file
-        '..': '',
-    }
-    
-    # Iterate over the dictionary and replace each key with its associated value
-    for old, new in replacements.items():
-        filename = filename.replace(old, new)
-    
-    return filename
 
 # ------------------------------------------------------------------------------------------
 

@@ -1,3 +1,8 @@
+JS_FILE = 0
+EXTERNAL = 1
+INLINE = 2
+
+
 def unname_js(path):
     return path_to_url(path)
 
@@ -10,14 +15,14 @@ def path_to_url(path):
         parts = path.split("/||/")
         main_url = path_to_url_helper(parts[0])
         external_url = path_to_url_helper(parts[1])
-        return ['1', main_url + " " + external_url]
+        return [INLINE, main_url + " " + external_url]
 
     if "/|||/" in path:
         parts = path.split("/|||/")
         main_url = path_to_url_helper(parts[0])
-        return ['2', main_url]
+        return [EXTERNAL, main_url]
 
-    return ['0', path_to_url_helper(path)]
+    return [JS_FILE, path_to_url_helper(path)]
 
 # Helper function for path_to_url that reconstructs the url (default to https)
 def path_to_url_helper(path):
