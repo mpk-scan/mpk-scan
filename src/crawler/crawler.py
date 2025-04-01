@@ -5,20 +5,44 @@ import requests
 import concurrent.futures
 from urllib.parse import urljoin, urlparse
 from html_parser import extract_javascript
+import argparse
+from datetime import datetime
 
-sys.path.append(os.path.abspath("../storage"))
+# ------------------------------------------------------------------------------------------
+
+# Output directory
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, 'output')
+
+CURRENT_TIME = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, CURRENT_TIME)
+os.makedirs(OUTPUT_PATH, exist_ok=True)
+
+# Logging
+
+LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
+
+# Import S3 API
+
+STORAGE_PATH = os.path.join(SCRIPT_DIR, "..", "storage")
+sys.path.append(os.path.abspath(STORAGE_PATH))
 
 from name_file import name_js, name_with_external, name_inline
 
 from s3_manager import S3Manager
 
-# Configuration
-OUTPUT_DIR = "temp"
+# Temp directory
 
-# Ensure output directory exists
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+TEMP_DIR = "temp"
+
+os.makedirs(TEMP_DIR, exist_ok=True)
 
 session = requests.Session()
+
+# Initialize variables
 
 files = []
 
@@ -26,9 +50,17 @@ external_files = []
 
 s3 = S3Manager()
 
+# ------------------------------------------------------------------------------------------
+
+def log_print(message):
+    """Append a log message to the log file in the timestamped directory."""
+    with open(LOG_FILE, 'a') as log_file:
+        log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+    print(message)
+
 def run_hakrawler(domain):
     """Runs Hakrawler with subdomain exploration enabled."""
-    print(f"Running Hakrawler on {domain}")
+    log_print(f"Running Hakrawler on {domain}")
 
     result = subprocess.run(
         ["hakrawler", "-subs"],
@@ -43,7 +75,7 @@ def run_hakrawler(domain):
         if line.strip().startswith(("http://", "https://"))
     }
 
-    print(f"Discovered {len(urls)} URLs")
+    log_print(f"Discovered {len(urls)} URLs")
     return urls
 
 def process_url(url):
@@ -85,16 +117,34 @@ def process_url(url):
 
 # Save temp file and upload to s3
 def save_js_file(temp_name, content, filename):   
-    filepath = os.path.join(OUTPUT_DIR, temp_name)
+    filepath = os.path.join(TEMP_DIR, temp_name)
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(content)
     s3.upload_file(filepath, filename)
     os.remove(filepath)
+    log_print(f'Successfully uploaded: filepath: {filepath}, filename: {filename} to the S3 bucket')
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run Hakrawler and extract JS files from URLs.")
+    parser.add_argument(
+        "-f", "--file",
+        type=str,
+        default="urls.txt",
+        help="Path to the input file containing target domains (default: urls.txt)"
+    )
+    return parser.parse_args()
 
 
 def main():
+    args = parse_args()
+    input_file = args.file
+
+    if not os.path.exists(input_file):
+        log_print(f"File '{input_file}' not found.")
+        sys.exit(1)
    
-    with open("urls.txt", "r") as f:
+    with open(input_file, "r") as f:
         lines = f.readlines()
 
     target_domains = [line.strip() for line in lines]
@@ -103,12 +153,12 @@ def main():
     for domain in target_domains:
         external_files = []
         urls = run_hakrawler(domain)
-        print(f"Processing: {domain}")
+        log_print(f"Processing: {domain}")
         # Process URLs in parallel (Change workers if needed)
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             executor.map(process_url, urls)
 
-    print("Complete!")
+    log_print("Complete!")
 
 
 
