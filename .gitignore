@@ -6,3 +6,5 @@ tests/__pycache__/
 src/crawler/output/
 src/crawler/temp/
 src/crawler/__pycache__/
+__pycache__/
+*.py[cod]
