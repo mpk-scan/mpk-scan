@@ -1,5 +1,8 @@
-src/semgrep/semgrepenv/
+myenv/
 src/semgrep/__pycache__/
 src/semgrep/output/
 src/storage/__pycache__/
 tests/__pycache__/
+src/crawler/output/
+src/crawler/temp/
+src/crawler/__pycache__/
