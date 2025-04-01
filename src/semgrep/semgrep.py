@@ -37,7 +37,7 @@ def run_semgrep_on_file(file_path, output_path, file_type_and_name):
     try:
         # Run the Semgrep command and capture the output and errors
         result = subprocess.run(
-            ['semgrep', file_path, '--config', RULES_DIRECTORY, '--no-git-ignore', "--no-ignore"],
+            ['semgrep', file_path, '--config', RULES_DIRECTORY, '--no-git-ignore'],
             text=True,  # Handle inputs and outputs as text (strings)
             capture_output=True  # Capture stdout and stderr
         )

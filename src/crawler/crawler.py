@@ -63,7 +63,7 @@ def run_hakrawler(domain):
     log_print(f"Running Hakrawler on {domain}")
 
     result = subprocess.run(
-        ["hakrawler", "-subs"],
+        ["hakrawler", "-subs", '-u'],
         input=domain,
         capture_output=True,
         text=True
@@ -78,7 +78,7 @@ def run_hakrawler(domain):
     log_print(f"Discovered {len(urls)} URLs")
     return urls
 
-def process_url(url):
+def process_url(url, no_external=False):
     '''For a given url, extract all js associated with it (inline and external)'''
 
     response = session.get(url, timeout=5)
@@ -100,6 +100,11 @@ def process_url(url):
             save_js_file(temp_filename, inline_js, name_inline(url))
         
         # Fetch external JS
+
+        # if -noex or --no-external flag was present
+        if no_external:
+            return
+        
         for js_url in external_js_links:
                 external_url = urljoin(url, js_url)  # Resolve relative URLs
 
@@ -133,6 +138,11 @@ def parse_args():
         default="urls.txt",
         help="Path to the input file containing target domains (default: urls.txt)"
     )
+    parser.add_argument(
+        "--no-external", "-noex",
+        action="store_true",
+        help="If set, do NOT fetch or process external JavaScript files"
+    )
     return parser.parse_args()
 
 
@@ -156,7 +166,7 @@ def main():
         log_print(f"Processing: {domain}")
         # Process URLs in parallel (Change workers if needed)
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            executor.map(process_url, urls)
+            executor.map(lambda u: process_url(u, args.no_external), urls)
 
     log_print("Complete!")
 
