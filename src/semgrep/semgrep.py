@@ -4,20 +4,25 @@ import time
 import subprocess
 from datetime import datetime
 import boto3
-from storage.s3_manager import S3Manager
 
 # ------------------------------------------------------------------------------------------
 
-OUTPUT_DIR = 'semgrep/output'
+OUTPUT_DIR = 'output'
 
-current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+CURRENT_TIME = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-OUTPUT_PATH = os.path.join(OUTPUT_DIR, current_time)
+OUTPUT_PATH = os.path.join(OUTPUT_DIR, CURRENT_TIME)
 os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
 
 RULES_DIRECTORY = "semgrep/production_rules"
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+STORAGE_PATH = os.path.join(SCRIPT_DIR, "..", "storage")
+sys.path.append(os.path.abspath(STORAGE_PATH))
+
+from s3_manager import S3Manager
 
 # ------------------------------------------------------------------------------------------
 
@@ -98,8 +103,8 @@ def sanitize_filename(filename):
 # ------------------------------------------------------------------------------------------
 
 def main():
-    print(current_time)
-    print(RULES_DIRECTORY)
+    print(CURRENT_TIME)
+    print(f'logging to: {LOG_FILE}')
     log_print("Running on all files in the s3 bucket")
     run_all()
     log_print("Finished.")
