@@ -36,9 +36,22 @@ class S3Manager:
         return unname_js(object_name)
 
     def list_files(self):
+        """Returns all file/object names from the bucket as a list"""
         paginator = self.s3_client.get_paginator('list_objects_v2')
         file_list = []
         for page in paginator.paginate(Bucket=self.bucket_name):
             for obj in page.get('Contents', []):
                 file_list.append(obj['Key'])
+        return file_list
+
+    def list_files_filtered(self, domains):
+        """Returns only file/object names from the bucket that match the domains provided"""
+        # Filtered by domains
+        paginator = self.s3_client.get_paginator('list_objects_v2')
+        file_list = []
+        for page in paginator.paginate(Bucket=self.bucket_name):
+            for obj in page.get('Contents', []):
+                key = obj['Key']
+                if any(key.startswith(domain) for domain in domains):
+                    file_list.append(key)
         return file_list

@@ -4,6 +4,7 @@ import time
 import subprocess
 from datetime import datetime
 import boto3
+import argparse
 
 # ------------------------------------------------------------------------------------------
 
@@ -63,13 +64,16 @@ def run_semgrep_on_file(file_path, output_path, file_type_and_name):
         # Log any exceptions that might occur during the subprocess execution
         log_print("An exception occurred: " + str(e))
 
-def run_all():
+def run_all(domains):
     """Run Semgrep on all the files"""
     s3_manager = S3Manager()
 
-    file_list = s3_manager.list_files()
+    if not domains:
+        file_list = s3_manager.list_files()
+    else:
+        file_list = s3_manager.list_files_filtered(domains)
 
-    log_print("Fetched all filenames from the S3 bucket. Running...")
+    log_print("Fetched filenames from the S3 bucket. Running...")
 
     for file_key in file_list:
 
@@ -92,11 +96,26 @@ def run_all():
 
 # ------------------------------------------------------------------------------------------
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="S3 JS File Processor")
+    parser.add_argument('--domains', nargs='+', help='Filter files by domain prefixes (e.g. example.com sub.example.com)')
+    return parser.parse_args()
+
 def main():
     print(CURRENT_TIME)
     print(f'logging to: {LOG_FILE}')
-    log_print("Running on all files in the s3 bucket")
-    run_all()
+
+    # Fetch args
+    args = parse_args()
+    domains = args.domains
+
+    if domains:
+        log_print('running on domains: ' + str(domains))
+    else:
+        log_print("Running on all domains in the bucket")
+
+    run_all(domains)
+    
     log_print("Finished.")
 
 if __name__ == "__main__":
