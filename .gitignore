@@ -2,9 +2,10 @@ myenv/
 src/semgrep/__pycache__/
 src/semgrep/output/
 src/storage/__pycache__/
-tests/__pycache__/
+src/tests/__pycache__/
 src/crawler/output/
 src/crawler/temp/
 src/crawler/__pycache__/
 __pycache__/
 *.py[cod]
+tests/jeremylocal
