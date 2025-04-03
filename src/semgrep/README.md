@@ -25,6 +25,8 @@ Run semgrep on files in the bucket with:
 
 # Sample output for semgrep.py:
 
+- Log files go to: output/log/[TIME]
+
 ```
 2025-04-03 00:27:44 - Running with domains: ['amazon.com', 'reddit.com']
 2025-04-03 00:27:44 - Running with rules: production_rules/proprietary/
