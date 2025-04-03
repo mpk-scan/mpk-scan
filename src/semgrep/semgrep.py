@@ -8,7 +8,7 @@ import argparse
 
 # ------------------------------------------------------------------------------------------
 
-OUTPUT_DIR = 'output'
+OUTPUT_DIR = 'output/logs'
 
 CURRENT_TIME = datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -17,7 +17,7 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
 
-RULES_DIRECTORY = "production_rules"
+DEFAULT_RULES_DIRECTORY = "production_rules"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STORAGE_PATH = os.path.join(SCRIPT_DIR, "..", "storage")
@@ -33,90 +33,103 @@ def log_print(message):
         log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
     print(message)
 
-def run_semgrep_on_file(file_path, output_path, file_type_and_name):
-    """Run Semgrep on the file and save the output to a specified path."""
-    try:
-        # Run the Semgrep command and capture the output and errors
-        result = subprocess.run(
-            ['semgrep', file_path, '--config', RULES_DIRECTORY, '--no-git-ignore'],
-            text=True,  # Handle inputs and outputs as text (strings)
-            capture_output=True  # Capture stdout and stderr
-        )
-        
-        # Check if there were any errors
-        if result.stderr:
-            log_print("ERROR: " + str(result.stderr))
+class SemgrepAPI:
 
-        # Write the output to the file ONLY if it finds any semgrep matches
-        if result.stdout:
-            with open(output_path, 'w') as output_file:
-                if file_type_and_name[0] == 0: # JS
-                    filetype = '.js'
-                elif file_type_and_name[0] == 1: # External
-                    filetype = 'external'
-                elif file_type_and_name[0] == 2: # Inline
-                    filetype = 'inline'
-                output_file.write(f"Filetype is: {filetype}")
-                output_file.write(f"\nURL: {file_type_and_name[1]}\n")
-                output_file.write(result.stdout)
+    def __init__(self, rules, domains):
+        # Attributes
+        self.domains = domains
 
-    except Exception as e:
-        # Log any exceptions that might occur during the subprocess execution
-        log_print("An exception occurred: " + str(e))
+        if rules == None:
+            self.rules = DEFAULT_RULES_DIRECTORY
+        else:
+            self.rules = rules
 
-def run_all(domains):
-    """Run Semgrep on all the files"""
-    s3_manager = S3Manager()
+        log_print('Running with domains: ' + str(self.domains))
+        log_print('Running with rules: ' + str(self.rules))
 
-    if not domains:
-        file_list = s3_manager.list_files()
-    else:
-        file_list = s3_manager.list_files_filtered(domains)
+    def run_semgrep_on_file(self, file_path, output_path, file_type_and_name):
+        """Run Semgrep on the file and save the output to a specified path."""
+        try:
+            # Run the Semgrep command and capture the output and errors
+            result = subprocess.run(
+                ['semgrep', file_path, '--config', self.rules, '--no-git-ignore'],
+                text=True,  # make stdout and stderr both strings
+                capture_output=True  # Capture stdout and stderr
+            )
 
-    log_print("Fetched filenames from the S3 bucket. Running...")
+            # Write the output to the file ONLY if it finds any semgrep matches
+            if result.stdout:
+                with open(output_path, 'w') as output_file:
+                    # Write the file type and URL
+                    if file_type_and_name[0] == 0: # JS
+                        filetype = '.js'
+                    elif file_type_and_name[0] == 1: # External
+                        filetype = 'external'
+                    elif file_type_and_name[0] == 2: # Inline
+                        filetype = 'inline'
+                    output_file.write(f"Filetype is: {filetype}")
+                    output_file.write(f"\nURL: {file_type_and_name[1]}\n")
 
-    for file_key in file_list:
+                    # Write the stdout and stderr - this contains the semgrep output
+                    output_file.write(result.stdout)
+                    if result.stderr:
+                        output_file.write("\nstderr:\n")
+                        output_file.write(result.stderr)
 
-        hash_file_key = str(hash(file_key)) + '.js'
+        except Exception as e:
+            # Log any exceptions that might occur during the subprocess execution
+            log_print("An exception occurred: " + str(e))
 
-        # Temporary file path
-        temp_file_path = os.path.join('/tmp', hash_file_key)
-        
-        # Download the file
-        file_type_and_name = s3_manager.download_file(file_key, temp_file_path)
-        
-        # Run Semgrep and output the results to the specified output directory
-        output_file_path = os.path.join(OUTPUT_PATH, f"{os.path.basename(hash_file_key)}_result.txt")
-        run_semgrep_on_file(temp_file_path, output_file_path, file_type_and_name)
-        
-        # Delete the temporary file
-        os.remove(temp_file_path)
+    def run_all(self):
+        """Run Semgrep on all the files"""
+        s3_manager = S3Manager()
 
-        # log_print(f"Semgrep complete for file: {file_key}")
+        if not self.domains:
+            file_list = s3_manager.list_files()
+        else:
+            file_list = s3_manager.list_files_filtered(self.domains)
+
+        log_print("Fetched filenames from the S3 bucket. Running...")
+
+        for file_key in file_list:
+
+            hash_file_key = str(hash(file_key)) + '.js'
+
+            log_print("Running on file: " + str(file_key) + ' - temporary hash name' + hash_file_key)
+
+            # Temporary file path
+            temp_file_path = os.path.join('/tmp', hash_file_key)
+            
+            # Download the file
+            file_type_and_name = s3_manager.download_file(file_key, temp_file_path)
+            
+            # Run Semgrep and output the results to the specified output directory
+            output_file_path = os.path.join(OUTPUT_PATH, f"{os.path.basename(hash_file_key)}_result.txt")
+            self.run_semgrep_on_file(temp_file_path, output_file_path, file_type_and_name)
+            
+            # Delete the temporary file
+            os.remove(temp_file_path)
+
+            # log_print(f"Semgrep complete for file: {file_key}")
 
 # ------------------------------------------------------------------------------------------
 
 def parse_args():
     parser = argparse.ArgumentParser(description="S3 JS File Processor")
     parser.add_argument('--domains', nargs='+', help='Filter files by domain prefixes (e.g. example.com sub.example.com)')
+    parser.add_argument('--rules', help='Path to Semgrep rule file or directory')
     return parser.parse_args()
 
 def main():
-    print(CURRENT_TIME)
-    print(f'logging to: {LOG_FILE}')
-
-    # Fetch args
+    # Fetch command line parameters
     args = parse_args()
     domains = args.domains
+    rules = args.rules
 
-    if domains:
-        log_print('running on domains: ' + str(domains))
-    else:
-        log_print("Running on all domains in the bucket")
+    # Create the API
+    semgrepAPI = SemgrepAPI(rules, domains)
 
-    run_all(domains)
-    
-    log_print("Finished.")
+    semgrepAPI.run_all()
 
 if __name__ == "__main__":
     main()
