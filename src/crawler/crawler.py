@@ -127,7 +127,7 @@ def save_js_file(temp_name, content, filename):
         f.write(content)
     s3.upload_file(filepath, filename)
     os.remove(filepath)
-    log_print(f'Successfully uploaded: filepath: {filepath}, filename: {filename} to the S3 bucket')
+    # log_print(f'Successfully uploaded: filepath: {filepath}, filename: {filename} to the S3 bucket')
 
 
 def parse_args():
@@ -163,8 +163,8 @@ def main():
     for domain in target_domains:
         external_files = []
         urls = run_hakrawler(domain)
-        log_print(f"Processing: {domain}")
         # Process URLs in parallel (Change workers if needed)
+        log_print("Uploading to the bucket...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             executor.map(lambda u: process_url(u, args.no_external), urls)
 
