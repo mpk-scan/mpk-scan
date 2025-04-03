@@ -25,7 +25,9 @@ Run semgrep on files in the bucket with:
 
 # Sample output for semgrep.py:
 
-- Log files go to: output/log/[TIME]
+- Log files go to: output/log/[TIME]/log.txt
+
+sample `log.txt` file:
 
 ```
 2025-04-03 00:27:44 - Running with domains: ['amazon.com', 'reddit.com']
@@ -35,6 +37,10 @@ Run semgrep on files in the bucket with:
 2025-04-03 00:27:48 - Running on file: amazon.com.br/|venda/|||/inline.js - temporary hash name-8194479248224545517.js
 2025-04-03 00:27:51 - Running on file: amazon.com.mx/|vender/|||/inline.js - temporary hash name7778720338677084361.js
 ```
+
+- Any semgrep findings will be logged to a separate file called:
+
+output/log/[TIME]/[TEMP_FILE_HASH].js_result.txt
 
 
 
