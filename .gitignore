@@ -1,4 +1,5 @@
 myenv/
+venv/
 src/semgrep/__pycache__/
 src/semgrep/output/
 src/storage/__pycache__/
