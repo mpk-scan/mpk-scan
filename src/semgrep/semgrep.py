@@ -110,6 +110,10 @@ class SemgrepAPI:
 
         except Exception as e:
             output_file.write("\nBeautification error " + str(e))
+            
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
     def run_all(self):
         """Run Semgrep on all the files"""
