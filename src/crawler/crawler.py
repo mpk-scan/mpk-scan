@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import jsbeautifier
 import requests
 import concurrent.futures
 from urllib.parse import urljoin, urlparse
@@ -123,8 +124,9 @@ def process_url(url, no_external=False):
 # Save temp file and upload to s3
 def save_js_file(temp_name, content, filename):   
     filepath = os.path.join(TEMP_DIR, temp_name)
+    beautified_code = jsbeautifier.beautify(content)
     with open(filepath, "w", encoding="utf-8") as f:
-        f.write(content)
+        f.write(beautified_code)
     s3.upload_file(filepath, filename)
     os.remove(filepath)
     # log_print(f'Successfully uploaded: filepath: {filepath}, filename: {filename} to the S3 bucket')
