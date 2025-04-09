@@ -1,9 +1,10 @@
 import sys
 import os
+import time
 import subprocess
 from datetime import datetime
+import boto3
 import argparse
-import jsbeautifier
 
 # ------------------------------------------------------------------------------------------
 
@@ -70,11 +71,7 @@ class SemgrepAPI:
                     output_file.write(f"\nURL: {file_type_and_name[1]}\n")
 
                     # Write the stdout and stderr - this contains the semgrep output
-                    # print("############################res#######################")
-                    # print(result.stdout)
-                    # print("############################res#######################")
-                    # output_file.write(result.stdout)
-                    # self._beautify_and_rerun(file_path, output_file)
+                    output_file.write(result.stdout)
                     if result.stderr:
                         output_file.write("\nstderr:\n")
                         output_file.write(result.stderr)
@@ -82,38 +79,6 @@ class SemgrepAPI:
         except Exception as e:
             # Log any exceptions that might occur during the subprocess execution
             log_print("An exception occurred: " + str(e))
-
-    # def _beautify_and_rerun(self, file_path, output_file):
-    #     """Beautify JavaScript code and re-run Semgrep."""
-    #     try:
-    #         with open(file_path, 'r') as f:
-    #             original_code = f.read()
-
-    #         beautified_code = jsbeautifier.beautify(original_code)
-
-    #         #creating the beautified code somewhere temporarily
-    #         temp_path = file_path + ".beautified.js"
-    #         with open(temp_path, 'w') as temp_file:
-    #             temp_file.write(beautified_code)
-
-    #         result = subprocess.run(
-    #             ['semgrep', temp_path, '--config', self.rules, '--no-git-ignore'],
-    #             text=True,
-    #             capture_output=True
-    #         )
-
-    #         output_file.write(result.stdout)
-            
-    #         if result.stderr:
-    #             output_file.write("\nBeautified stderr:\n")
-    #             output_file.write(result.stderr)
-
-    #     except Exception as e:
-    #         output_file.write("\nBeautification error " + str(e))
-            
-    #     finally:
-    #         if os.path.exists(temp_path):
-    #             os.remove(temp_path)
 
     def run_all(self):
         """Run Semgrep on all the files"""
