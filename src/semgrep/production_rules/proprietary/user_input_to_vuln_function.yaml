@@ -1,8 +1,7 @@
 rules:
-  - id: html-inject
+  - id: user-input-to-vuln-function
     metadata:
       category: security
-      subcategory: html-injection
       impact: high
     languages:
       - javascript
