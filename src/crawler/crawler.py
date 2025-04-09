@@ -129,7 +129,7 @@ def save_js_file(temp_name, content, filename):
         f.write(beautified_code)
     s3.upload_file(filepath, filename)
     os.remove(filepath)
-    # log_print(f'Successfully uploaded: filepath: {filepath}, filename: {filename} to the S3 bucket')
+    log_print(f'Successfully uploaded: filepath: {filepath}, filename: {filename} to the S3 bucket')
 
 
 def parse_args():
