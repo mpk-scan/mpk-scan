@@ -110,8 +110,6 @@ class SemgrepAPI:
             # Delete the temporary file
             os.remove(temp_file_path)
 
-            # log_print(f"Semgrep complete for file: {file_key}")
-
 # ------------------------------------------------------------------------------------------
 
 def parse_args():
@@ -130,6 +128,8 @@ def main():
     semgrepAPI = SemgrepAPI(rules, domains)
 
     semgrepAPI.run_all()
+
+    log_print("Finished.")
 
 if __name__ == "__main__":
     main()
