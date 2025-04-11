@@ -6,7 +6,7 @@ Running semgrep on every file in the bucket
 
 1. Set up a venv in this repo's root directory:
 
-`python3 - venv myenv`
+`python3 -m venv myenv`
 `source myenv/bin/activate`
 
 2. In the venv, `pip install -r requirements.txt`
