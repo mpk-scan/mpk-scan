@@ -126,6 +126,8 @@ def process_url(url, no_external=False):
 def save_js_file(temp_name, content, filename):   
     filepath = os.path.join(TEMP_DIR, temp_name)
     beautified_code = jsbeautifier.beautify(content)
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
+    beautified_code = "// " + timestamp + "\n\n" + beautified_code
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(beautified_code)
     s3.upload_file(filepath, filename)
