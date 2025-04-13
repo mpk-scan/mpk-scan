@@ -4,6 +4,7 @@ import os
 import jsbeautifier
 import requests
 import concurrent.futures
+import hashlib
 from urllib.parse import urljoin, urlparse
 from html_parser import extract_javascript
 import argparse
@@ -89,7 +90,7 @@ def process_url(url, no_external=False):
 
     #If url is a js file
     if url.endswith('.js') or 'javascript' in content_type:
-        temp_filename = str(hash(url))
+        temp_filename = hashlib.sha256(url.encode()).hexdigest()
         save_js_file(temp_filename, response.text, name_js(url))
         
     # If url is other
@@ -97,7 +98,7 @@ def process_url(url, no_external=False):
         inline_js, external_js_links = extract_javascript(url, response.text)
         # Fetch inline JS
         if inline_js:
-            temp_filename = str(hash(url)) 
+            temp_filename = hashlib.sha256(url.encode()).hexdigest()
             save_js_file(temp_filename, inline_js, name_inline(url))
         
         # Fetch external JS
@@ -117,7 +118,7 @@ def process_url(url, no_external=False):
                     content_type = response.headers.get('Content-Type', '')
                     if external_url.endswith('.js') or 'javascript' in content_type:
                         external_files.append(external_url)
-                        temp_filename = str(hash(url+external_url))
+                        temp_filename = hashlib.sha256((url+external_url).encode()).hexdigest()
                         save_js_file(temp_filename, response.text, name_with_external(url, external_url))
 
 
