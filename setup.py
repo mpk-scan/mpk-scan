@@ -27,8 +27,8 @@ setup(
     python_requires=">=3.7",
     entry_points={
         "console_scripts": [
-            "crawler=crawler.crawler:main",  # CLI command for crawler
-            "semgrep=semgrep.semgrep:main",  # CLI command for semgrep
+            "capstone-crawler=crawler.crawler:main",  # CLI command for crawler
+            "capstone-semgrep=semgrep.semgrep:main",  # CLI command for semgrep
         ],
     },
 )
