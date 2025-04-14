@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="capstoneLLMthing",
-    version="0.1.0",
-    author="Jeremy Neale",
+    name="mpk-scan",
+    version="1.0.0",
+    author="Jeremy Neale, Claire Doody, Omar Nweashe, Aidan Cranfeld, Nabeel Merali",
     description="Semgrep analysis for vulnerabilities",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -27,8 +27,8 @@ setup(
     python_requires=">=3.7",
     entry_points={
         "console_scripts": [
-            "capstone-crawler=crawler.crawler:main",  # CLI command for crawler
-            "capstone-semgrep=semgrep.semgrep:main",  # CLI command for semgrep
+            "capstone-crawler=crawler.crawler:main",  
+            "capstone-semgrep=semgrep.semgrep:main",  
         ],
     },
 )
