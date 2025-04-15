@@ -6,6 +6,7 @@ from datetime import datetime
 import boto3
 import argparse
 import hashlib
+import shutil
 
 # ------------------------------------------------------------------------------------------
 
@@ -41,6 +42,8 @@ class SemgrepAPI:
 
     def __init__(self, rules, search):
         # Attributes
+        self.vuln_count = 1
+
         self.search = search
 
         if rules == None:
@@ -54,19 +57,26 @@ class SemgrepAPI:
             log_print('Using prefix search on: ' + str(self.search))
         log_print('Running with rules: ' + str(self.rules))
 
-    def run_semgrep_on_file(self, file_path, output_path, file_type_and_name):
+    def run_semgrep_on_file(self, temp_file_path, file_type_and_name):
         """Run Semgrep on the file and save the output to a specified path."""
         try:
             # Run the Semgrep command and capture the output and errors
             result = subprocess.run(
-                ['semgrep', file_path, '--config', self.rules, '--no-git-ignore'],
+                ['semgrep', temp_file_path, '--config', self.rules, '--no-git-ignore'],
                 text=True,  # make stdout and stderr both strings
                 capture_output=True  # Capture stdout and stderr
             )
 
             # Write the output to the file ONLY if it finds any semgrep matches
             if result.stdout:
-                with open(output_path, 'w') as output_file:
+                # Make directory for the vuln
+                vuln_dir = os.path.join(OUTPUT_PATH, f"vuln_{self.vuln_count}")
+                os.makedirs(vuln_dir, exist_ok=True)
+                self.vuln_count += 1
+                text_path = os.path.join(vuln_dir, "result.txt")
+
+                # Write the semgrep output to the result.txt
+                with open(text_path, 'w') as output_file:
                     # Write the file type and URL
                     if file_type_and_name[0] == 0: # JS
                         filetype = '.js'
@@ -82,6 +92,12 @@ class SemgrepAPI:
                     if result.stderr:
                         output_file.write("\nstderr:\n")
                         output_file.write(result.stderr)
+
+                # Move the temp file into the vuln_dir
+                shutil.move(temp_file_path, os.path.join(vuln_dir, os.path.basename(temp_file_path)))
+            else:
+                # Delete the temp file
+                os.remove(temp_file_path)
 
         except Exception as e:
             # Log any exceptions that might occur during the subprocess execution
@@ -102,7 +118,7 @@ class SemgrepAPI:
 
             hash_file_key = hashlib.sha256((file_key).encode()).hexdigest() + '.js'
 
-            log_print("Running on file: " + str(file_key) + ' - temporary hash name' + hash_file_key)
+            log_print("Running on file: " + str(file_key) + ' - temporary hash name ' + hash_file_key)
 
             # Temporary file path
             temp_file_path = os.path.join(TEMP_DIR, hash_file_key)
@@ -110,12 +126,13 @@ class SemgrepAPI:
             # Download the file
             file_type_and_name = s3_manager.download_file(file_key, temp_file_path)
             
-            # Run Semgrep and output the results to the specified output directory
-            output_file_path = os.path.join(OUTPUT_PATH, f"{os.path.basename(hash_file_key)}_result.txt")
-            self.run_semgrep_on_file(temp_file_path, output_file_path, file_type_and_name)
-            
-            # Delete the temporary file
-            os.remove(temp_file_path)
+            # Run Semgrep and output the results to the specified output directory if a vuln is found
+            self.run_semgrep_on_file(temp_file_path, file_type_and_name)
+
+        if self.vuln_count == 1:
+            log_print(f"Finished. {self.vuln_count} vulnerability found. Check {OUTPUT_PATH}")
+        else:
+            log_print(f"Finished. {self.vuln_count} vulnerabilities found. Check {OUTPUT_PATH}")
 
 # ------------------------------------------------------------------------------------------
 
@@ -135,8 +152,6 @@ def main():
     semgrepAPI = SemgrepAPI(rules, search)
 
     semgrepAPI.run_all()
-
-    log_print("Finished.")
 
 if __name__ == "__main__":
     main()
