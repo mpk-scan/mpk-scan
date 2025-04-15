@@ -42,7 +42,7 @@ class SemgrepAPI:
 
     def __init__(self, rules, search):
         # Attributes
-        self.vuln_count = 1
+        self.vuln_count = 0
 
         self.search = search
 
@@ -69,6 +69,7 @@ class SemgrepAPI:
 
             # Write the output to the file ONLY if it finds any semgrep matches
             if result.stdout:
+                log_print("SEMGREP MATCH FOUND!")
                 # Make directory for the vuln
                 vuln_dir = os.path.join(OUTPUT_PATH, f"vuln_{self.vuln_count}")
                 os.makedirs(vuln_dir, exist_ok=True)
