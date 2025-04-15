@@ -10,7 +10,6 @@ Running semgrep on every file in the bucket
 `source myenv/bin/activate`
 
 2. In the venv, `pip install -r requirements.txt`
-- should install boto3 and semgrep
 
 3. If needed, configure environment variables with:
 
@@ -21,7 +20,7 @@ Running semgrep on every file in the bucket
 
 Run semgrep on files in the bucket with:
 
-`python3 semgrep.py` optional flags: `--domains example.com sub.test.com ...` `--rules production_rules/proprietary/`
+`python3 semgrep.py` optional flags: `--search example.com sub.test.com example.com/|www/|||/inline.js ...` `--rules production_rules/proprietary/`
 
 # Sample output for semgrep.py:
 
@@ -30,18 +29,16 @@ Run semgrep on files in the bucket with:
 sample `log.txt` file:
 
 ```
-2025-04-03 00:27:44 - Running with domains: ['amazon.com', 'reddit.com']
-2025-04-03 00:27:44 - Running with rules: production_rules/proprietary/
-2025-04-03 00:27:46 - Fetched filenames from the S3 bucket. Running...
-2025-04-03 00:27:46 - Running on file: amazon.com.au/|sell/|||/inline.js - temporary hash name-7559768333442326107.js
-2025-04-03 00:27:48 - Running on file: amazon.com.br/|venda/|||/inline.js - temporary hash name-8194479248224545517.js
-2025-04-03 00:27:51 - Running on file: amazon.com.mx/|vender/|||/inline.js - temporary hash name7778720338677084361.js
+2025-04-15 13:39:01 - Using prefix search on: ['example.com/|www/|||/inline.js', 'meta.com/|www/|||/inline.js']
+2025-04-15 13:39:01 - Running with rules: production_rules
+2025-04-15 13:39:07 - Fetched filenames from the S3 bucket. Running...
+2025-04-15 13:39:07 - Running on file: meta.com/|www/|||/inline.js - temporary hash namedaf708377b6e68670a56cf265f4f76a678ba3054b751132b130ed76ebdae8f82.js
+2025-04-15 13:39:10 - Finished.
 ```
 
 - Any semgrep findings will be logged to a separate file called:
 
 output/log/[TIME]/[TEMP_FILE_HASH].js_result.txt
-
 
 
 # Sources

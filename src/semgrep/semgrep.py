@@ -5,10 +5,14 @@ import subprocess
 from datetime import datetime
 import boto3
 import argparse
+import hashlib
 
 # ------------------------------------------------------------------------------------------
 
 OUTPUT_DIR = 'output/logs'
+
+TEMP_DIR = 'output/temp'
+os.makedirs(TEMP_DIR, exist_ok=True)
 
 CURRENT_TIME = datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -35,16 +39,19 @@ def log_print(message):
 
 class SemgrepAPI:
 
-    def __init__(self, rules, domains):
+    def __init__(self, rules, search):
         # Attributes
-        self.domains = domains
+        self.search = search
 
         if rules == None:
             self.rules = DEFAULT_RULES_DIRECTORY
         else:
             self.rules = rules
 
-        log_print('Running with domains: ' + str(self.domains))
+        if self.search == None:
+            log_print("No domains or prefix searches provided, searching the whole bucket.")
+        else:
+            log_print('Using prefix search on: ' + str(self.search))
         log_print('Running with rules: ' + str(self.rules))
 
     def run_semgrep_on_file(self, file_path, output_path, file_type_and_name):
@@ -84,21 +91,21 @@ class SemgrepAPI:
         """Run Semgrep on all the files"""
         s3_manager = S3Manager()
 
-        if not self.domains:
+        if not self.search:
             file_list = s3_manager.list_files()
         else:
-            file_list = s3_manager.list_files_filtered(self.domains)
+            file_list = s3_manager.list_files_filtered(self.search)
 
         log_print("Fetched filenames from the S3 bucket. Running...")
 
         for file_key in file_list:
 
-            hash_file_key = str(hash(file_key)) + '.js'
+            hash_file_key = hashlib.sha256((file_key).encode()).hexdigest() + '.js'
 
             log_print("Running on file: " + str(file_key) + ' - temporary hash name' + hash_file_key)
 
             # Temporary file path
-            temp_file_path = os.path.join('/tmp', hash_file_key)
+            temp_file_path = os.path.join(TEMP_DIR, hash_file_key)
             
             # Download the file
             file_type_and_name = s3_manager.download_file(file_key, temp_file_path)
@@ -114,18 +121,18 @@ class SemgrepAPI:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="S3 JS File Processor")
-    parser.add_argument('--domains', nargs='+', help='Filter files by domain prefixes (e.g. example.com sub.example.com)')
+    parser.add_argument('--search', '-s', nargs='+', help='Filter files by prefixes (e.g. example.com sub.example.com example.com/|www/|||/inline.js)')
     parser.add_argument('--rules', help='Path to Semgrep rule file or directory')
     return parser.parse_args()
 
 def main():
     # Fetch command line parameters
     args = parse_args()
-    domains = args.domains
+    search = args.search
     rules = args.rules
 
     # Create the API
-    semgrepAPI = SemgrepAPI(rules, domains)
+    semgrepAPI = SemgrepAPI(rules, search)
 
     semgrepAPI.run_all()
 
