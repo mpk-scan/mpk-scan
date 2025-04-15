@@ -29,11 +29,11 @@ Run semgrep on files in the bucket with:
 sample `log.txt` file:
 
 ```
-2025-04-15 13:39:01 - Using prefix search on: ['example.com/|www/|||/inline.js', 'meta.com/|www/|||/inline.js']
-2025-04-15 13:39:01 - Running with rules: production_rules
-2025-04-15 13:39:07 - Fetched filenames from the S3 bucket. Running...
-2025-04-15 13:39:07 - Running on file: meta.com/|www/|||/inline.js - temporary hash namedaf708377b6e68670a56cf265f4f76a678ba3054b751132b130ed76ebdae8f82.js
-2025-04-15 13:39:10 - Finished.
+2025-04-15 17:47:58 - Using prefix search on: ['amazon.com/|advertising/register/||/cloudfront.net/|d209e2j7j88hab/assets-A20mV2.js']
+2025-04-15 17:47:58 - Running with rules: production_rules
+2025-04-15 17:48:04 - Fetched filenames from the S3 bucket. Running...
+2025-04-15 17:48:04 - Running on file: <redacted>.com/|advertising/register/||/<redacted>.net/|<redacted>/assets-1.js - temporary hash name 477567ff9bbfbeb97bf710d0013cfab4b54029feb6356e07e975d3acfa3f9dd3.js
+2025-04-15 17:48:11 - Finished. 1 vulnerability found. Check output/logs/20250415-174758
 ```
 
 - Any semgrep findings will be logged to a separate file called:
