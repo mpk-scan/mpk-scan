@@ -22,6 +22,10 @@ Run semgrep on files in the bucket with:
 
 `python3 semgrep.py` optional flags: `--search example.com sub.test.com example.com/|www/|||/inline.js ...` `--rules production_rules/proprietary/`
 
+You can also pass a list of domains as a text file with --search
+
+`python3 semgrep.py -s priority_urls.txt`
+
 # Sample output for semgrep.py:
 
 - Log files go to: output/log/[TIME]/log.txt
@@ -29,7 +33,7 @@ Run semgrep on files in the bucket with:
 sample `log.txt` file:
 
 ```
-2025-04-15 17:47:58 - Using prefix search on: ['amazon.com/|advertising/register/||/cloudfront.net/|d209e2j7j88hab/assets-A20mV2.js']
+2025-04-15 17:47:58 - Using prefix search on: ['test.com, example.com/']
 2025-04-15 17:47:58 - Running with rules: production_rules
 2025-04-15 17:48:04 - Fetched filenames from the S3 bucket. Running...
 2025-04-15 17:48:04 - Running on file: <redacted>.com/|advertising/register/||/<redacted>.net/|<redacted>/assets-1.js - temporary hash name 477567ff9bbfbeb97bf710d0013cfab4b54029feb6356e07e975d3acfa3f9dd3.js

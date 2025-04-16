@@ -137,6 +137,14 @@ class SemgrepAPI:
 
 # ------------------------------------------------------------------------------------------
 
+def remove_https(domains):
+    cleaned = []
+    for domain in domains:
+        domain = domain.removeprefix("https://")
+        domain = domain.removeprefix("http://")
+        cleaned.append(domain)
+    return cleaned
+
 def parse_args():
     parser = argparse.ArgumentParser(description="S3 JS File Processor")
     parser.add_argument('--search', '-s', nargs='+', help='Filter files by prefixes (e.g. example.com sub.example.com example.com/|www/|||/inline.js)')
@@ -146,7 +154,19 @@ def parse_args():
 def main():
     # Fetch command line parameters
     args = parse_args()
-    search = args.search
+
+    # if -s is a .txt file, fetch the URLs from there
+    if len(args.search) == 1 and args.search[0].endswith('.txt'):
+        file_path = args.search[0]
+        if not os.path.isfile(args.search[0]):
+            print(f"Error: File '{file_path}' does not exist.", file=sys.stderr)
+            sys.exit(1)
+        with open(file_path, 'r') as f:
+            search = [line.strip() for line in f if line.strip()]
+            search = remove_https(search)
+    else:
+        search = args.search
+    
     rules = args.rules
 
     # Create the API
