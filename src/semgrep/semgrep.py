@@ -77,6 +77,7 @@ class SemgrepAPI:
 
     # ----------------------- HAKRAWLER -------------------------------
     def run_hakrawler_all(self):
+        log_print("Running hakrawler...")
         domains = []
         for domain in self.search:
             urls = run_hakrawler(domain)
