@@ -147,13 +147,14 @@ class SemgrepAPI:
                             self.save_and_run_semgrep(temp_filename, response.text, name_with_external(url, external_url))
 
     # Save temp file
-    def save_and_run_semgrep(self,temp_name, content, url):   
+    def save_and_run_semgrep(self, temp_name, content, url):   
         temp_filepath = os.path.join(TEMP_DIR, temp_name)
         beautified_code = jsbeautifier.beautify(content)
         with open(temp_filepath, "w", encoding="utf-8") as f:
             f.write(beautified_code)
 
-        file_type_and_name = unname_js(url)
+        clean_url = url.removeprefix("https://").removeprefix("http://")
+        file_type_and_name = unname_js(clean_url)
         self.run_semgrep_on_file(temp_filepath, file_type_and_name[0], file_type_and_name[1])
         
 
@@ -268,6 +269,7 @@ def parse_args():
     return parser.parse_args()
 
 def main():
+    log_print("Command: " + ' '.join(sys.argv))
     # Fetch command line parameters
     args = parse_args()
 
