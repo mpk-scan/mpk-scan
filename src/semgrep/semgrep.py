@@ -10,8 +10,8 @@ import hashlib
 import shutil
 import jsbeautifier
 from urllib.parse import urljoin, urlparse
-from html_parser import extract_javascript
 import concurrent.futures
+import tldextract
 
 # ------------------------------------------------------------------------------------------
 
@@ -29,13 +29,18 @@ LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
 
 DEFAULT_RULES_DIRECTORY = "production_rules"
 
+# Import file from other directories
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STORAGE_PATH = os.path.join(SCRIPT_DIR, "..", "storage")
+CRAWLER_PATH = os.path.join(SCRIPT_DIR, '..', "crawler")
 sys.path.append(os.path.abspath(STORAGE_PATH))
+sys.path.append(os.path.abspath(CRAWLER_PATH))
 
 from s3_manager import S3Manager
 from name_file import name_js, name_with_external, name_inline
 from unname_file import unname_js
+from html_parser import extract_javascript
+from crawler import run_hakrawler
 
 # ------------------------------------------------------------------------------------------
 
@@ -51,7 +56,12 @@ class SemgrepAPI:
         # Attributes
         self.vuln_count = 0
 
-        # The list of URLs/files to run semgrep on
+        # For local
+        self.external_files = []
+
+        # The list of URLs/files to run semgrep on.
+        # This is not "domains", because these can be prefix searches for the s3 bucket
+        # ex. -s example.com/||sub/||parent-sub/files/test, which is parent-sub.sub.example.com/files/test or any subsequent paths/files
         self.search = search
 
         if rules == None:
@@ -69,42 +79,24 @@ class SemgrepAPI:
     def run_hakrawler_all(self):
         domains = []
         for domain in self.search:
-            urls = self.run_hakrawler(domain)
+            urls = run_hakrawler(domain)
             # Process URLs in parallel (Change workers if needed)
             log_print(f"{len(urls)} URLs fetched from {domain}")
             for url in urls:
                 domains.append(url)
         self.search = domains
-
-    def run_hakrawler(self,domain):
-        """Runs Hakrawler with subdomain exploration enabled."""
-        log_print(f"Running Hakrawler on {domain}")
-
-        result = subprocess.run(
-            ["hakrawler", "-subs", '-u'],
-            input=domain,
-            capture_output=True,
-            text=True
-        )
-
-        urls = {
-            line.strip().rstrip('/')
-            for line in result.stdout.splitlines()
-            if line.strip().startswith(("http://", "https://"))
-        }
-
-        log_print(f"Discovered {len(urls)} URLs")
-        return urls
     
     # ----------------------- LOCAL -------------------------------
     def run_all_local(self, no_external):
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            log_print("Processing files in parallel...")
             futures = [executor.submit(self.process_url, url, no_external=no_external) for url in self.search]
             for future in concurrent.futures.as_completed(futures):
                 future.result()
 
     def process_url(self,url, no_external=False):
         '''For a given url, extract all js associated with it (inline and external)'''
+        log_print(f"Processing {url}...")
         try:
             response = requests.get(url, timeout=5)
             if response.status_code != 200:
@@ -118,7 +110,7 @@ class SemgrepAPI:
         #If url is a js file
         if url.endswith('.js') or 'javascript' in content_type:
             temp_filename = hashlib.sha256((url).encode()).hexdigest() + '.js'
-            self.save_js_file(temp_filename, response.text, url)
+            self.save_and_run_semgrep(temp_filename, response.text, url)
             
         # If url is other
         elif 'text/html' in content_type:
@@ -126,7 +118,7 @@ class SemgrepAPI:
             # Fetch inline JS
             if inline_js:
                 temp_filename = hashlib.sha256((url).encode()).hexdigest() + '.js'
-                self.save_js_file(temp_filename, inline_js, url)
+                self.save_and_run_semgrep(temp_filename, inline_js, url)
             
             # Fetch external JS
 
@@ -150,18 +142,17 @@ class SemgrepAPI:
                         content_type = response.headers.get('Content-Type', '')
                         if external_url.endswith('.js') or 'javascript' in content_type:
                             self.external_files.append(external_url)
-                            temp_filename = str(hash(url+external_url)) + ".js"
-                            self.save_js_file(temp_filename, response.text, name_with_external(url, external_url))
+                            temp_filename = hashlib.sha256((url + external_url).encode()).hexdigest() + '.js'
+                            self.save_and_run_semgrep(temp_filename, response.text, name_with_external(url, external_url))
 
     # Save temp file
-    def save_js_file(self,temp_name, content, url):   
+    def save_and_run_semgrep(self,temp_name, content, url):   
         temp_filepath = os.path.join(TEMP_DIR, temp_name)
         beautified_code = jsbeautifier.beautify(content)
         with open(temp_filepath, "w", encoding="utf-8") as f:
             f.write(beautified_code)
 
         file_type_and_name = unname_js(url)
-
         self.run_semgrep_on_file(temp_filepath, file_type_and_name[0], file_type_and_name[1])
         
 
@@ -173,33 +164,42 @@ class SemgrepAPI:
         if not self.search:
             file_list = s3_manager.list_files()
         else:
-            # Remove https to run semgrep on the bucket files
             self.search = remove_https(self.search)
             file_list = s3_manager.list_files_filtered(self.search)
 
-        for file_key in file_list:
+        log_print("Processing files in parallel...")
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [
+                executor.submit(self.process_parallel_bucket, s3_manager, file_key)
+                for file_key in file_list
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                future.result()
 
-            hash_file_key = hashlib.sha256((file_key).encode()).hexdigest() + '.js'
 
-            log_print("Running on file: " + str(file_key) + ' - temporary hash name ' + hash_file_key)
+    def process_parallel_bucket(self, s3_manager, file_key):
+        hash_file_key = hashlib.sha256(file_key.encode()).hexdigest() + '.js'
 
-            # Temporary file path
-            temp_file_path = os.path.join(TEMP_DIR, hash_file_key)
-            
-            # Download the file
-            file_type_and_name = s3_manager.download_file(file_key, temp_file_path)
-            
-            # Run Semgrep and output the results to the specified output directory if a vuln is found
-            self.run_semgrep_on_file(temp_file_path, file_type_and_name[0], file_type_and_name[1])
+        temp_file_path = os.path.join(TEMP_DIR, hash_file_key)
 
-        if self.vuln_count == 1:
-            log_print(f"Finished. {self.vuln_count} vulnerability found. Check {OUTPUT_PATH}")
-        else:
-            log_print(f"Finished. {self.vuln_count} vulnerabilities found. Check {OUTPUT_PATH}")
+        # Download the file
+        file_type_and_name = s3_manager.download_file(file_key, temp_file_path)
 
-    # ----------------------- ALL -------------------------------
+        # Run Semgrep
+        self.run_semgrep_on_file(temp_file_path, file_type_and_name[0], file_type_and_name[1])
+
+    # ----------------------- SEMGREP -------------------------------
     def run_semgrep_on_file(self, temp_file_path, file_type, file_name):
         """Run Semgrep on the file and save the output to a specified path."""
+        if file_type == 0: # JS
+            filetype = '.js'
+        elif file_type == 1: # External
+            filetype = 'external'
+        elif file_type == 2: # Inline
+            filetype = 'inline'
+        log_print(f"Running Semgrep on file: URL = {file_name}, filetype = {filetype}, temp_file_path = {temp_file_path}")
+
         try:
             # Run the Semgrep command and capture the output and errors
             result = subprocess.run(
@@ -211,21 +211,17 @@ class SemgrepAPI:
             # Write the output to the file ONLY if it finds any semgrep matches
             if result.stdout:
                 log_print("SEMGREP MATCH FOUND!")
-                # Make directory for the vuln
-                vuln_dir = os.path.join(OUTPUT_PATH, f"vuln_{self.vuln_count}")
+
+                # make vuln dir
+                vuln_dir = os.path.join(OUTPUT_PATH, get_domain(file_name), hashlib.sha256((temp_file_path).encode()).hexdigest())
                 os.makedirs(vuln_dir, exist_ok=True)
+
                 self.vuln_count += 1
                 text_path = os.path.join(vuln_dir, "result.txt")
 
                 # Write the semgrep output to the result.txt
                 with open(text_path, 'w') as output_file:
                     # Write the file type and URL
-                    if file_type == 0: # JS
-                        filetype = '.js'
-                    elif file_type == 1: # External
-                        filetype = 'external'
-                    elif file_type == 2: # Inline
-                        filetype = 'inline'
                     output_file.write(f"Filetype is: {filetype}")
                     output_file.write(f"\nURL: {file_name}\n")
 
@@ -255,11 +251,17 @@ def remove_https(domains):
         cleaned.append(domain)
     return cleaned
 
+
+def get_domain(url):
+    url = url.split(" ")[0] # To handle external URLs, which have " - external URL: ..." after
+    extracted = tldextract.extract(url)
+    return f"{extracted.domain}.{extracted.suffix}"
+
 def parse_args():
     parser = argparse.ArgumentParser(description="S3 JS File Processor")
     parser.add_argument('--search', '-s', nargs='+', help='Filter files by prefixes (e.g. example.com sub.example.com example.com/|www/|||/inline.js)')
     parser.add_argument('--rules', help='Path to Semgrep rule file or directory')
-    parser.add_argument('--s3', 's3', help='If you want to connect with an S3 bucket. See ../storage')
+    parser.add_argument('--s3', '-s3', action='store_true', help='If you want to connect with an S3 bucket. See ../storage')
     parser.add_argument('--noexternal', '-noex', action='store_true', help="For running locally, if you don't want to fetch external files")
     parser.add_argument('--nohakrawler', '-nohak', action='store_true', help="For running locally, if you don't want to run hakrawler first on the domains.")
     return parser.parse_args()
@@ -269,13 +271,13 @@ def main():
     args = parse_args()
 
     if args.s3 and (args.noexternal or args.nohakrawler):
-        log_print("ERROR: -noex and -nohak are only for running locally (without -s3)")
+        log_print("ERROR: -noex and -nohak are only for running locally (without -s3).")
         sys.exit(1)
 
     rules = args.rules
 
     # if -s is a .txt file, fetch the URLs from there
-    if len(args.search) == 1 and args.search[0].endswith('.txt'):
+    if args.search and len(args.search) == 1 and args.search[0].endswith('.txt'):
         file_path = args.search[0]
         if not os.path.isfile(args.search[0]):
             print(f"Error: File '{file_path}' does not exist.", file=sys.stderr)
@@ -296,6 +298,11 @@ def main():
             semgrepAPI.run_hakrawler_all()
 
         semgrepAPI.run_all_local(args.noexternal)
+
+    if semgrepAPI.vuln_count == 1:
+        log_print(f"Finished. {semgrepAPI.vuln_count} vulnerability found. Check {OUTPUT_PATH}")
+    else:
+        log_print(f"Finished. {semgrepAPI.vuln_count} vulnerabilities found. Check {OUTPUT_PATH}")
 
 if __name__ == "__main__":
     main()
