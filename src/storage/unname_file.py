@@ -15,12 +15,12 @@ def path_to_url(path):
         parts = path.split("/||/")
         main_url = path_to_url_helper(parts[0])
         external_url = path_to_url_helper(parts[1])
-        return [INLINE, main_url + " " + external_url]
+        return [EXTERNAL, main_url + " - external URL: " + external_url]
 
     if "/|||/" in path:
         parts = path.split("/|||/")
         main_url = path_to_url_helper(parts[0])
-        return [EXTERNAL, main_url]
+        return [INLINE, main_url]
 
     return [JS_FILE, path_to_url_helper(path)]
 
