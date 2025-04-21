@@ -2,6 +2,7 @@ myenv/
 venv/
 src/semgrep/__pycache__/
 src/semgrep/output/logs/
+src/semgrep/output/temp/
 src/storage/__pycache__/
 src/tests/__pycache__/
 src/crawler/output/
