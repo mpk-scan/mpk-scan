@@ -1,4 +1,4 @@
-# Sp25Capstone Group 8
+# mpk-scan: Sp25Capstone Group 8
 
 # Overview
 This project aims to combine web scraping for client-side Javascript files with Semgrep, an open-source static code vulnerability scanner.
