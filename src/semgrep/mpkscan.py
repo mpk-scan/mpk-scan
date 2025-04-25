@@ -52,7 +52,7 @@ def log_print(message):
         log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
     print(message)
 
-class SemgrepAPI:
+class Mpkscan:
 
     def __init__(self, rules, search, upload):
         # Attributes
@@ -306,21 +306,21 @@ def main():
         search = args.search
 
     # Create the API
-    semgrepAPI = SemgrepAPI(rules, search, args.upload)
+    mpkscan = Mpkscan(rules, search, args.upload)
 
     if args.s3:
-        semgrepAPI.run_all_from_bucket()
+        mpkscan.run_all_from_bucket()
     else: # Running locally
         # IF hakrawler flag:
         if not args.nohakrawler:
-            semgrepAPI.run_hakrawler_all(args.noexternal)
+            mpkscan.run_hakrawler_all(args.noexternal)
         else:
-            semgrepAPI.run_all_local(search, args.noexternal)
+            mpkscan.run_all_local(search, args.noexternal)
 
-    if semgrepAPI.vuln_count == 1:
-        log_print(f"Finished. {semgrepAPI.vuln_count} vulnerability found. Check {OUTPUT_PATH}")
+    if mpkscan.vuln_count == 1:
+        log_print(f"Finished. {mpkscan.vuln_count} vulnerability found. Check {OUTPUT_PATH}")
     else:
-        log_print(f"Finished. {semgrepAPI.vuln_count} vulnerabilities found. Check {OUTPUT_PATH}")
+        log_print(f"Finished. {mpkscan.vuln_count} vulnerabilities found. Check {OUTPUT_PATH}")
 
 if __name__ == "__main__":
     main()
