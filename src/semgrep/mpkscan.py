@@ -1,4 +1,5 @@
 import sys
+import traceback
 import os
 import time
 import subprocess
@@ -46,6 +47,18 @@ s3 = S3Manager()
 
 # ------------------------------------------------------------------------------------------
 
+def handle_uncaught_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        # Allow Ctrl+C to behave normally
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    error_message = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    log_print(f"[CRASH] Uncaught exception:\n{error_message}")
+
+sys.excepthook = handle_uncaught_exception
+
+# ------------------------------------------------------------------------------------------
+
 def log_print(message):
     """Append a log message to the log file in the timestamped directory."""
     with open(LOG_FILE, 'a') as log_file:
@@ -59,7 +72,7 @@ class Mpkscan:
         self.vuln_count = 0
 
         # For local
-        self.external_files = []
+        self.external_files = set()
 
         self.upload = upload
 
@@ -83,6 +96,7 @@ class Mpkscan:
     def run_hakrawler_all(self, no_external):
         log_print("Running hakrawler...")
         for domain in self.search:
+            self.external_files = set()
             urls = run_hakrawler(domain)
             urls.add(domain)
             # Process URLs in parallel (Change workers if needed)
@@ -143,7 +157,7 @@ class Mpkscan:
                     
                         content_type = response.headers.get('Content-Type', '')
                         if external_url.endswith('.js') or 'javascript' in content_type:
-                            self.external_files.append(external_url)
+                            self.external_files.add(external_url)
                             temp_filename = hashlib.sha256((url + external_url).encode()).hexdigest() + '.js'
                             self.save_and_run_semgrep(temp_filename, response.text, name_with_external(url, external_url))
 
@@ -231,9 +245,9 @@ class Mpkscan:
                 # make vuln dir
                 vuln_dir = os.path.join(OUTPUT_PATH, get_domain(file_name), hashlib.sha256((temp_file_path).encode()).hexdigest())
                 os.makedirs(vuln_dir, exist_ok=True)
+                text_path = os.path.join(vuln_dir, "result.txt")
 
                 self.vuln_count += 1
-                text_path = os.path.join(vuln_dir, "result.txt")
 
                 # Write the semgrep output to the result.txt
                 with open(text_path, 'w') as output_file:
