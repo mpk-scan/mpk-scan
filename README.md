@@ -1,5 +1,6 @@
 # mpk-scan
-A command-line tool to scrape front-end JavaScript files from websites and scan them for security vulnerabilities using Semgrep rules to detect malicious code patterns.
+CLI to scrape front-end JavaScript files from websites and scan them for security vulnerabilities using Semgrep rules to detect malicious code patterns.
+
 Supports optional S3 bucket integration.
 
 # Requirements
