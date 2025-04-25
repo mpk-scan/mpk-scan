@@ -18,7 +18,7 @@ class S3Manager:
     def upload_file(self, file_name, object_name):
         try:
             self.s3_client.upload_file(file_name, self.bucket_name, object_name)
-            print(f"File {file_name} uploaded to {self.bucket_name}/{object_name}")
+            print(f"File {object_name} uploaded to {self.bucket_name}")
             return True
         except NoCredentialsError:
             print("Credentials not available")

@@ -165,8 +165,10 @@ class SemgrepAPI:
         """Uploads the file to the s3 bucket"""
         assert os.path.exists(filepath), f"File {filepath} does not exist"
         try:
-            res = s3.upload_file(filepath, "test")
-            log_print(f"upload_file for {filename} returned: {res}")
+            if s3.upload_file(filepath, filename):
+                log_print(f"Uploaded file {filename} to the s3 bucket.")
+            else:
+                log_print(f"[ERROR]: Error uploading file {filename} to the bucket")
         except Exception as e:
             log_print(f"[ERROR]: {e}")
 
