@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 sys.path.append(os.path.abspath("../src/storage"))
 
-from s3_manager import S3Manager
+from test_s3_manager import S3Manager
 from unname_file import unname_js
 
 CURRENT_TIME = datetime.now().strftime("%Y%m%d-%H%M%S")

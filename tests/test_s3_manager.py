@@ -13,14 +13,18 @@ class S3Manager:
             region_name=self.region_name
         )
 
-    def upload_file(self, file_name, object_name=None):
-        if object_name is None:
-            object_name = file_name
+    def upload_file(self, file_name, object_name):
         try:
             self.s3_client.upload_file(file_name, self.bucket_name, object_name)
             print(f"File {file_name} uploaded to {self.bucket_name}/{object_name}")
+            return True
         except NoCredentialsError:
             print("Credentials not available")
+            raise
+        except Exception as e:
+            print(f"ERROR: {e}")
+            raise
+
 
     def download_file(self, object_name, file_name=None):
         if file_name is None:
