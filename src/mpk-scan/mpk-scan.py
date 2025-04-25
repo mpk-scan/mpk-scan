@@ -290,7 +290,7 @@ def get_domain(url):
 def parse_args():
     parser = argparse.ArgumentParser(description="S3 JS File Processor")
     parser.add_argument('--search', '-s', nargs='+', help='Filter files by prefixes (e.g. example.com sub.example.com example.com/|www/|||/inline.js)')
-    parser.add_argument('--rules', help='Path to Semgrep rule file or directory')
+    parser.add_argument('--rules', 'r', help='Path to Semgrep rule file or directory')
     parser.add_argument('--s3', '-s3', action='store_true', help='If you want to connect with an S3 bucket. See ../storage')
     parser.add_argument('--noexternal', '-noex', action='store_true', help="For running locally, if you don't want to fetch external files")
     parser.add_argument('--nohakrawler', '-nohak', action='store_true', help="For running locally, if you don't want to run hakrawler first on the domains.")
