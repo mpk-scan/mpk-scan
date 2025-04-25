@@ -11,7 +11,13 @@ rules:
     - This allows an attacker to spoof an origin to pass the weak check
     - Use `if ($OBJ.origin === "https://trusted.com")` instead.
   pattern-either:
-   - pattern-regex: \b(origin|url)\.includes\s*\(\s*["'][^"']+["']\s*\) # weak includes
-   - pattern-regex: \b(origin|url)\.startsWith\s*\(\s*["'][^"']+["']\s*\) # weak starts with
-   - pattern-regex: \b(origin|url)\.indexOf\s*\(\s*["'][^"']+["']\s*\) # weak index of
-   - pattern-regex: \b(origin|url)\.endsWith\(["'][a-zA-Z0-9-]+\.[a-zA-Z0-9]+["']\) # weak ends with
+    - pattern-regex: \borigin\.(includes|indexOf)\s*\(\s*["'](?!\.)[^"?#/:]*\.[^"?#/:]*["']\s*\)
+    - pattern-regex: \b(url)\.(includes|indexOf)\s*\(\s*["'](?![?#/:])[^"?#/:]*\.[^"?#/:]*["']\s*\)
+    - pattern-regex: \bhostname\.(includes|indexOf)\s*\(\s*["'](?![?#/:])[^"?#/:]*\.[^"?#/:]*["']\s*\)
+
+    - pattern-regex: \borigin\.startsWith\s*\(\s*["']https?:\/\/[^\/"']+\.[^\/"']+["']\s*\)
+    - pattern-regex: \burl\.startsWith\s*\(\s*["']https?:\/\/[^\/"']+\.[^\/"']+["']\s*\)
+    - pattern-regex: \bhostname\.startsWith\s*\(\s*["'](?![?#/:])[^"?#/:]*\.[^"?#/:]*["']\s*\)
+
+    - pattern-regex: \borigin\.endsWith\s*\(\s*["'](?![.?/#])[^."?#/:]+\.{1}[^."?#/:/]+(["/][^"']*)?["']\s*\)
+    - pattern-regex: \b(url|hostname)\.endsWith\s*\(\s*["'](?![.?/#])[^."?#/:]+\.{1}[^."?#/:/]+(["/][^"']*)?["']\s*\)
