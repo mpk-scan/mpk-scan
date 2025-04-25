@@ -12,3 +12,4 @@ __pycache__/
 *.py[cod]
 tests/jeremylocal
 tests/output/
+CS5934_G8_Key_Pair.pem
