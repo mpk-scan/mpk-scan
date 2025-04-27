@@ -1,7 +1,7 @@
 # mpk-scan
-CLI to scrape front-end JavaScript files from websites and scan them for security vulnerabilities using Semgrep rules to detect malicious code patterns.
+CLI tool to scrape front-end JavaScript files from websites and scan them for security vulnerabilities using Semgrep rules to detect malicious code patterns.
 
-Supports optional S3 bucket integration.
+- Supports optional S3 bucket integration.
 
 # Requirements
 1. Python 3.7 or higher
@@ -13,6 +13,17 @@ Supports optional S3 bucket integration.
 - ensure the Go bin directory is in your PATH
   ```bash
   export PATH=$PATH:$(go env GOPATH)/bin
+
+# Flags
+
+| Flag          | Feature       |
+| ------------- | ------------- |
+| --search, -s  | List or .txt file of the domains or search prefixes  |
+| --rules, -r  | Path to Semgrep rule file or directory  |
+| --s3, -s3  | Enable connection to an AWS S3 bucket  |
+| --noexternal, -noex  | Ignore external JS files  |
+| --nohakrawler, -nohak  | Does not run hakrawler on domains, only processes URL  |
+| --upload, -up  |--upload, -up  |
 
 # Usage
 See /mpkscan for usage.
