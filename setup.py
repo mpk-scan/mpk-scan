@@ -1,11 +1,6 @@
 from setuptools import setup, find_packages
-
-
-from setuptools import setup, find_packages
 from setuptools.command.install import install
-import subprocess
 import os
-
 
 setup(
     name="mpk-scan",
@@ -15,8 +10,8 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/omarnweashe/Sp25Capstone",
-    packages=find_packages(where="src"),  # Look for packages in the "src" directory
-    package_dir={"": "src"},  # Specify "src" as the root directory for packages
+    packages=find_packages(where="src"),  
+    package_dir={"": "src"},  
     include_package_data=True,
     install_requires=[
         "boto3",
@@ -34,8 +29,8 @@ setup(
     python_requires=">=3.7",
     entry_points={
         "console_scripts": [
+            "mpk-scan=mpk-scan.mpk-scan:main", 
             "mpk-scan-crawler=crawler.crawler:main",  
-            "mpk-scan-semgrep=semgrep.semgrep:main",  
         ],
     },
 )
