@@ -303,7 +303,11 @@ def main():
     args = parse_args()
 
     if args.s3 and (args.noexternal or args.nohakrawler or args.upload):
-        log_print("ERROR: -noex, -up, -nohak are only for running locally (without -s3).")
+        log_print("[ERROR]: -noex, -up, -nohak are only for running locally (without -s3).")
+        sys.exit(1)
+
+    if not args.s3 and not args.search:
+        log_print("[ERROR]: You must either provide domains to search with -s, or provide -s3 to run on files in the bucket.")
         sys.exit(1)
 
     rules = args.rules
@@ -312,7 +316,7 @@ def main():
     if args.search and len(args.search) == 1 and args.search[0].endswith('.txt'):
         file_path = args.search[0]
         if not os.path.isfile(args.search[0]):
-            print(f"Error: File '{file_path}' does not exist.", file=sys.stderr)
+            print(f"[ERROR]: File '{file_path}' does not exist.", file=sys.stderr)
             sys.exit(1)
         with open(file_path, 'r') as f:
             search = [line.strip() for line in f if line.strip()]
