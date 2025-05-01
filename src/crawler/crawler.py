@@ -64,6 +64,10 @@ def run_hakrawler(domain):
     """Runs Hakrawler with subdomain exploration enabled."""
     log_print(f"Running Hakrawler on {domain}")
 
+    # Add 'https://' if needed
+    if not domain.startswith('http') and not domain.startswith('https'):
+        domain = 'https://' + domain
+
     result = subprocess.run(
         ["hakrawler", "-subs", '-u'],
         input=domain,
