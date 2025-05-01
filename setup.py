@@ -6,7 +6,7 @@ setup(
     name="mpk-scan",
     version="1.0.0",
     author="Jeremy Neale, Claire Doody, Omar Nweashe, Aidan Cranfeld, Nabeel Merali",
-    description="Semgrep analysis for vulnerabilities",
+    description="Web scraper and vulnerability scanner",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/omarnweashe/Sp25Capstone",
@@ -29,7 +29,7 @@ setup(
     python_requires=">=3.7",
     entry_points={
         "console_scripts": [
-            "mpk-scan=mpk-scan.mpk-scan:main", 
+            "mpk-scan=mpk_scan.mpk_scan:main", 
             "mpk-scan-crawler=crawler.crawler:main",  
         ],
     },
