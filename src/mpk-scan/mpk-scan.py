@@ -41,13 +41,14 @@ from s3_manager import S3Manager
 from name_file import name_js, name_with_external, name_inline
 from unname_file import unname_js
 from html_parser import extract_javascript
-from crawler import run_hakrawler
+import crawler
 
 s3 = S3Manager()
 
 # ------------------------------------------------------------------------------------------
 
 def handle_uncaught_exception(exc_type, exc_value, exc_traceback):
+    """Writes stderr to logfile if an uncaught error occurs"""
     if issubclass(exc_type, KeyboardInterrupt):
         # Allow Ctrl+C to behave normally
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -57,13 +58,13 @@ def handle_uncaught_exception(exc_type, exc_value, exc_traceback):
 
 sys.excepthook = handle_uncaught_exception
 
-# ------------------------------------------------------------------------------------------
-
 def log_print(message):
     """Append a log message to the log file in the timestamped directory."""
     with open(LOG_FILE, 'a') as log_file:
         log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
     print(message)
+
+# ------------------------------------------------------------------------------------------
 
 class Mpkscan:
 
@@ -97,8 +98,13 @@ class Mpkscan:
         log_print("Running hakrawler...")
         for domain in self.search:
             self.external_files = set()
-            urls = run_hakrawler(domain)
+            urls = crawler.run_hakrawler(domain)
+
+            # Add the base URL, adding 'https://' if needed
+            if not domain.startswith('http') and not domain.startswith('https'):
+                domain = 'https://' + domain
             urls.add(domain)
+            
             # Process URLs in parallel (Change workers if needed)
             log_print(f"{len(urls)} URLs fetched from {domain}")
             self.run_all_local(urls, no_external)
