@@ -42,11 +42,17 @@ The flags -nohak, -noex, and -u are illogical and will throw an error if used wi
 # S3 Key naming system explained
 For searching with -s3, any domains passed in with -s will be used as a prefix search in the S3 bucket.
 
-`|` = a subdomain, any subsequent `|` are children of that subdomain. `example.com/|parent/|child` = `child.parent.example.com`.
+`|` = a subdomain, any subsequent `|` are children of that subdomain. 
 
-`||` = Splits the URL into the original and external URLs (parsed from `<script src=...`). `example.com/||external.com/...`
+- `example.com/|parent/|child` = `child.parent.example.com`
 
-`|||` = inline JavaScript of the URL (parsed from `<script>...</script>`.
+`||` = Splits the URL into the original and external URLs (parsed from `<script src=...`).
+
+- `example.com/||external.com/...`
+
+`|||` = inline JavaScript of the URL.
+
+- parsed `<script>...</script>`
 
 # Output
 
