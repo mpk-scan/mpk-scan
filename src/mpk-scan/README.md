@@ -1,22 +1,6 @@
 # mpk-scan
 
-# Configuration
-
-1. Set up a venv in root:
-
-`python3 -m venv myenv`
-`source myenv/bin/activate`
-
-2. In the venv, `pip install -r requirements.txt`
-
-3. To integrate with S3, configure environment variables for:
-
-`AWS_ACCESS_KEY_ID`
-`AWS_SECRET_ACCESS_KEY`
-
-AND update \__init__ in s3_manager.py in `~/src/storage`
-
-# Local Usage
+# Usage
 
 `python3 mpk-scan.py`
 
@@ -26,6 +10,7 @@ Flags:
 - noex: `-noex`, Doesn't fetch external JavaScript files (for hakrawler OR without hakrawler)
 - rules: `-r`, Supply custom Semgrep rules (file OR directory)
 - upload: `-u`, Uploads each JS file to the bucket before running Semgrep. See Configuration.
+- s3: `--s3`, See next section
 
 # Exclusive S3 usage
 
