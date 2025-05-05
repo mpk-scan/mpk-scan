@@ -1,6 +1,4 @@
 from setuptools import setup, find_packages
-from setuptools.command.install import install
-import os
 
 setup(
     name="mpk-scan",
@@ -29,7 +27,7 @@ setup(
     python_requires=">=3.7",
     entry_points={
         "console_scripts": [
-            "mpk-scan=mpk_scan.mpk_scan:main", 
+            "mpk-scan=mpk_scan.mpk_scan:main",  
             "mpk-scan-crawler=crawler.crawler:main",  
         ],
     },
