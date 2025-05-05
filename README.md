@@ -25,7 +25,7 @@ and update constructor in s3_manager.py in `~/src/storage`.
 1. Python 3.7 or higher
 2. (reccomended) Hakrawler
 - `hakrawler` must be installed and added to the system's PATH.  
-  You can install `hakrawler` using the following command:
+  With Go installed, you can install `hakrawler` using the following command:
   ```bash
   go install github.com/hakluke/hakrawler@latest
 - ensure the Go bin directory is in your PATH
