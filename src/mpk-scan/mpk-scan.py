@@ -68,7 +68,7 @@ def log_print(message):
 
 class Mpkscan:
 
-    def __init__(self, rules, search, upload):
+    def __init__(self, rules, search, upload, num_threads):
         # Attributes
         self.vuln_count = 0
 
@@ -76,6 +76,8 @@ class Mpkscan:
         self.external_files = set()
 
         self.upload = upload
+
+        self.num_workers = num_threads # number of workers/threads
 
         # The list of URLs/files to run semgrep on.
         # This is not "domains", because these can be prefix searches for the s3 bucket
@@ -91,7 +93,9 @@ class Mpkscan:
             log_print("No domains or prefix searches provided, searching the whole bucket.")
         else:
             log_print('Search: ' + str(self.search))
+
         log_print('Running with rules: ' + str(self.rules))
+        log_print(f"Running with {self.num_workers} threads")
 
     # ----------------------- HAKRAWLER -------------------------------
     def run_hakrawler_all(self, no_external):
@@ -111,7 +115,7 @@ class Mpkscan:
     
     # ----------------------- LOCAL -------------------------------
     def run_all_local(self, urls, no_external):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_workers) as executor:
             futures = [executor.submit(self.process_url, url, no_external=no_external) for url in urls]
             for future in concurrent.futures.as_completed(futures):
                 future.result()
@@ -171,7 +175,14 @@ class Mpkscan:
     def save_and_run_semgrep(self, temp_name, content, url):
         """Savs the file as temp, uploads to bucket if -up, and calls run_semgrep""" 
         temp_filepath = os.path.join(TEMP_DIR, temp_name)
+
+        # Beautify code
         beautified_code = jsbeautifier.beautify(content)
+        
+        # Add timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
+        beautified_code = "// " + timestamp + "\n\n" + beautified_code
+
         with open(temp_filepath, "w", encoding="utf-8") as f:
             f.write(beautified_code)
 
@@ -205,7 +216,7 @@ class Mpkscan:
 
         log_print("Processing files in parallel...")
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_workers) as executor:
             futures = [
                 executor.submit(self.process_parallel_bucket, file_key)
                 for file_key in file_list
@@ -295,12 +306,16 @@ def get_domain(url):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="S3 JS File Processor")
+
+    # Arguments
     parser.add_argument('--search', '-s', nargs='+', help='Filter files by prefixes (e.g. example.com sub.example.com example.com/|www/|||/inline.js)')
     parser.add_argument('--rules', '-r', help='Path to Semgrep rule file or directory')
     parser.add_argument('--s3', '-s3', action='store_true', help='If you want to connect with an S3 bucket. See ../storage')
     parser.add_argument('--noexternal', '-noex', action='store_true', help="For running locally, if you don't want to fetch external files")
     parser.add_argument('--nohakrawler', '-nohak', action='store_true', help="For running locally, if you don't want to run hakrawler first on the domains.")
     parser.add_argument('--upload', '-up', action='store_true', help='If you want to also upload the file to the bucket')
+    parser.add_argument("--threads", "-t", type=int, default=4, help="Number of threads to use (default: 4)")
+
     return parser.parse_args()
 
 def main():
@@ -330,7 +345,7 @@ def main():
         search = args.search
 
     # Create the API
-    mpkscan = Mpkscan(rules, search, args.upload)
+    mpkscan = Mpkscan(rules, search, args.upload, args.threads)
 
     if args.s3:
         mpkscan.run_all_from_bucket()
