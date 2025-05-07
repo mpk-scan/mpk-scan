@@ -41,7 +41,7 @@ from s3_manager import S3Manager
 from name_file import name_js, name_with_external, name_inline
 from unname_file import unname_js
 from html_parser import extract_javascript
-import crawler
+from crawler.crawler import crawler
 
 s3 = S3Manager()
 
