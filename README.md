@@ -4,17 +4,18 @@ CLI to scrape front-end JavaScript files from websites and scan them for securit
 Supports optional S3 bucket integration.
 
 # Installation
+Debian linux recommended
 
-`git clone https://github.com/mpk-scan/mpk-scan.git`
+1. `git clone https://github.com/mpk-scan/mpk-scan.git`
 
-1. Set up a venv in root:
+2. Set up a venv in root:
 
 `python3 -m venv myenv`
 `source myenv/bin/activate`
 
-2. In the venv, `pip install -r requirements.txt`
+3. In the venv, `pip install -r requirements.txt`
 
-3. To integrate with S3, configure environment variables:
+To integrate with S3, configure environment variables:
 
 `AWS_ACCESS_KEY_ID`
 `AWS_SECRET_ACCESS_KEY`
@@ -23,7 +24,10 @@ and update constructor in s3_manager.py in `~/src/storage`.
 
 # Requirements
 1. Python 3.7 or higher
-2. (reccomended) Hakrawler
+2. (recomended) Hakrawler
+
+**You may use --nohak to run without hakrawler**
+
 - `hakrawler` must be installed and added to the system's PATH.  
   With Go installed, you can install `hakrawler` using the following command:
   ```bash
@@ -32,13 +36,11 @@ and update constructor in s3_manager.py in `~/src/storage`.
   ```bash
   export PATH=$PATH:$(go env GOPATH)/bin
 
-You may use --nohak to run without hakrawler
-
 # Usage
-See /mpkscan for usage.
 
-1. `/mpkscan` (reccomended) - Webcrawler + vuln scanner
+1. `/mpkscan` (recommended) - see /mpk-scan for usage.
+   - Webcrawler + vuln scanner
    - Full functionality, allows optional s3 usage
 
-3. `/crawler` - Web crawler/scraper
+2. `/crawler` - Web crawler/scraper
    - Exclusively scraping with hakrawler to fill up S3 bucket
