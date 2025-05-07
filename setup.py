@@ -12,13 +12,13 @@ setup(
     package_dir={"": "src"},  
     include_package_data=True,
     install_requires=[
-        "boto3",
-        "semgrep",
-        "bs4",
-        "requests",
-        "jsbeautifier",
-        "tldextract",
-    ],
+        "boto3==1.26.24",
+        "semgrep==1.94.0",
+        "bs4==0.0.2",
+        "requests==2.32.0",
+        "jsbeautifier==1.15.4",
+        "tldextract==5.1.3",
+    ]
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
