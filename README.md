@@ -4,18 +4,29 @@ CLI to scrape front-end JavaScript files from websites and scan them for securit
 Supports optional S3 bucket integration.
 
 # Installation
+
 Debian linux recommended
 
-1. `git clone https://github.com/mpk-scan/mpk-scan.git`
+`git clone https://github.com/mpk-scan/mpk-scan.git`
 
-2. Set up a venv in root:
+**Pip install**:
+
+1. in this directory, run `pip install -e .`
+
+2. run `mpk-scan -...` in any directory
+
+**Venv**:
+
+1. Set up a venv in root:
 
 `python3 -m venv myenv`
 `source myenv/bin/activate`
 
-3. In the venv, `pip install -r requirements.txt`
+2. In the venv, `pip install -r requirements.txt`
 
-To integrate with S3, configure environment variables:
+**S3 integration**
+
+Optional - to integrate with S3, configure environment variables:
 
 `AWS_ACCESS_KEY_ID`
 `AWS_SECRET_ACCESS_KEY`
