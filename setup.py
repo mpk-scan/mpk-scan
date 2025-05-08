@@ -11,14 +11,6 @@ setup(
     packages=find_packages(where="src"),  
     package_dir={"": "src"},  
     include_package_data=True,
-    install_requires=[
-        "boto3",
-        "semgrep",
-        "bs4",
-        "requests",
-        "jsbeautifier",
-        "tldextract",
-    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

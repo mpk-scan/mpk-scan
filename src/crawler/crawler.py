@@ -6,7 +6,7 @@ import requests
 import concurrent.futures
 import hashlib
 from urllib.parse import urljoin, urlparse
-from html_parser import extract_javascript
+from .html_parser import extract_javascript
 import argparse
 from datetime import datetime
 
