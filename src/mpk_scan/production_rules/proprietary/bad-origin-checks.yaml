@@ -1,0 +1,23 @@
+rules:
+- id: bad-origin-checks
+  metadata:
+    category: bad-origin-checks
+    cwe: "CWE-346: Origin Validation Error"
+    security: "high"
+  languages: [javascript, typescript]
+  severity: ERROR
+  message: |
+    🚨 Insecure origin check detected!
+    - This allows an attacker to spoof an origin to pass the weak check
+    - Use `if ($OBJ.origin === "https://trusted.com")` instead.
+  pattern-either:
+    - pattern-regex: \borigin\.(includes|indexOf)\s*\(\s*["'](?!\.)[^"?#/:.]*\.[^"?#/:.]*["']\s*\)
+    - pattern-regex: \b(url)\.(includes|indexOf)\s*\(\s*["'](?![?#/:])[^"?#/:.]*\.[^"?#/:.]*["']\s*\)
+    - pattern-regex: \bhostname\.(includes|indexOf)\s*\(\s*["'](?![?#/:])[^"?#/:.]*\.[^"?#/:.]*["']\s*\)
+
+    - pattern-regex: \borigin\.startsWith\s*\(\s*["']https?:\/\/[^\/"']+\.[^\/"']+["']\s*\)
+    - pattern-regex: \burl\.startsWith\s*\(\s*["']https?:\/\/[^\/"']+\.[^\/"']+["']\s*\)
+    - pattern-regex: \bhostname\.startsWith\s*\(\s*["'](?![?#/:])[^"?#/:.]*\.[^"?#/:.]*["']\s*\)
+
+    - pattern-regex: \borigin\.endsWith\s*\(\s*["'](?![.?/#])[^."?#/:]+\.{1}[^."?#/:/]+(["/][^"']*)?["']\s*\)
+    - pattern-regex: \b(url|hostname)\.endsWith\s*\(\s*["'](?![.?/#])[^."?#/:]+\.{1}[^."?#/:/]+(["/][^"']*)?["']\s*\)
