@@ -153,23 +153,20 @@ class Mpkscan:
                 return
             
             for js_url in external_js_links:
-                    external_url = urljoin(url, js_url)  # Resolve relative URLs
-
-                    # Check for duplicate external
-                    if external_url not in self.external_files:
-                        try:
-                            response = requests.get(url, timeout=5)
-                            if response.status_code != 200:
-                                return
-                        except requests.exceptions.RequestException as e:
-                            log_print(f"[ERROR] Failed to fetch {url}: {e}")
-                            return
-                    
-                        content_type = response.headers.get('Content-Type', '')
-                        if external_url.endswith('.js') or 'javascript' in content_type:
-                            self.external_files.add(external_url)
-                            temp_filename = hashlib.sha256((url + external_url).encode()).hexdigest() + '.js'
-                            self.save_and_run_semgrep(temp_filename, response.text, name_with_external(url, external_url))
+                external_url = urljoin(url, js_url)
+                if external_url not in self.external_files:
+                    try:
+                        ext_resp = requests.get(external_url, timeout=5)  # line 161
+                        if ext_resp.status_code != 200:
+                            continue  # line 163 - was `return`
+                    except requests.exceptions.RequestException as e:
+                        log_print(f"[ERROR] Failed to fetch {external_url}: {e}")  # line 165
+                        continue  # was `return`
+                    content_type = ext_resp.headers.get('Content-Type', '')
+                    if external_url.endswith('.js') or 'javascript' in content_type:
+                        self.external_files.add(external_url)
+                        temp_filename = hashlib.sha256((url + external_url).encode()).hexdigest() + '.js'
+                        self.save_and_run_semgrep(temp_filename, ext_resp.text, name_with_external(url, external_url))
 
 
     def save_and_run_semgrep(self, temp_name, content, url):
