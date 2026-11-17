@@ -4,7 +4,9 @@ import os
 import jsbeautifier
 import requests
 import concurrent.futures
+import threading
 import hashlib
+import time
 from urllib.parse import urljoin, urlparse
 from .html_parser import extract_javascript
 import argparse
@@ -42,7 +44,27 @@ TEMP_DIR = "temp"
 
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+# Optional research headers, set via env so no identity is hardcoded.
+# e.g. MPK_SCAN_RESEARCH_ID=your-handle MPK_SCAN_BUG_BOUNTY_PROGRAM=program-name
+BB_HEADERS = {"User-Agent": "mpk-scan/1.0"}
+_RESEARCH_ID = os.getenv("MPK_SCAN_RESEARCH_ID", "")
+_BUG_BOUNTY_PROGRAM = os.getenv("MPK_SCAN_BUG_BOUNTY_PROGRAM", "")
+if _RESEARCH_ID:
+    BB_HEADERS["X-HackerOne-Research"] = _RESEARCH_ID
+    BB_HEADERS["User-Agent"] = f"mpk-scan-research {_RESEARCH_ID}"
+if _BUG_BOUNTY_PROGRAM:
+    BB_HEADERS["X-Bug-Bounty"] = _BUG_BOUNTY_PROGRAM
+
 session = requests.Session()
+session.headers.update(BB_HEADERS)
+
+SKIP_THIRD_PARTY = ["adobedtm.com", "trustarc.com", "hlx.page", "consent.", "googletagmanager.com", "hotjar.com", "segment.io", "intercom.io"]
+
+# Serialize all outbound requests across worker threads. A 250 ms minimum
+# start-to-start interval keeps the whole process at no more than 4 rps.
+REQUEST_INTERVAL_SECONDS = float(os.getenv("MPK_SCAN_REQUEST_INTERVAL_SECONDS", "0.25"))
+_REQUEST_LOCK = threading.Lock()
+_LAST_REQUEST_STARTED = 0.0
 
 # Initialize variables
 
@@ -59,6 +81,18 @@ def log_print(message):
     with open(LOG_FILE, 'a') as log_file:
         log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
     print(message)
+
+
+def throttled_get(url, **kwargs):
+    """Issue a GET while enforcing the process-wide request-rate ceiling."""
+    global _LAST_REQUEST_STARTED
+    with _REQUEST_LOCK:
+        wait = REQUEST_INTERVAL_SECONDS - (time.monotonic() - _LAST_REQUEST_STARTED)
+        if wait > 0:
+            time.sleep(wait)
+        _LAST_REQUEST_STARTED = time.monotonic()
+    return requests.get(url, **kwargs)
+
 
 def run_hakrawler(domain):
     """Runs Hakrawler with subdomain exploration enabled."""
@@ -87,7 +121,7 @@ def run_hakrawler(domain):
 def process_url(url, no_external=False):
     '''For a given url, extract all js associated with it (inline and external)'''
 
-    response = session.get(url, timeout=5)
+    response = throttled_get(url, timeout=5, headers=BB_HEADERS)
     if response.status_code != 200:
         return
     content_type = response.headers.get('Content-Type', '')
@@ -114,11 +148,14 @@ def process_url(url, no_external=False):
         for js_url in external_js_links:
                 external_url = urljoin(url, js_url)  # Resolve relative URLs
 
+                if any(skip in external_url for skip in SKIP_THIRD_PARTY):
+                    log_print(f"[SKIP] 3rd-party filtered: {external_url}")
+                    continue
                 # Check for duplicate external
                 if external_url not in external_files:
-                    response = requests.get(external_url)
+                    response = throttled_get(external_url, headers=BB_HEADERS, timeout=5)
                     if response.status_code != 200:
-                        return  
+                        continue
                     content_type = response.headers.get('Content-Type', '')
                     if external_url.endswith('.js') or 'javascript' in content_type:
                         external_files.append(external_url)
