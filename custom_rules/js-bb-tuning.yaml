@@ -1,0 +1,411 @@
+rules:
+- id: bb-dom-xss-enhanced
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: Potential DOM XSS - user controllable source flows into dangerous HTML sink
+  metadata:
+    category: security
+    technology:
+    - browser
+    - dom-xss
+    cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation (''Cross-site Scripting'')'
+    owasp: A03:2021 - Injection
+    confidence: MEDIUM
+    impact: HIGH
+    likelihood: MEDIUM
+    subcategory: vuln
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - focus-metavariable: $SRC
+    - pattern-either:
+      - pattern: location.search
+      - pattern: location.hash
+      - pattern: location.href
+      - pattern: document.location.search
+      - pattern: document.location.hash
+      - pattern: document.location.href
+      - pattern: window.location.search
+      - pattern: window.location.hash
+      - pattern: window.location.href
+      - pattern: document.location
+      - pattern: window.location
+      - patterns:
+        - pattern-inside: '$Q = new URLSearchParams(...)
+
+            ...
+
+            '
+        - pattern: $Q.get(...)
+        - focus-metavariable: $Q
+      - patterns:
+        - pattern-inside: '$U = new URL(...)
+
+            ...
+
+            '
+        - pattern: $U.searchParams.get(...)
+      - pattern: $SRC = new URLSearchParams(...).get(...)
+      - pattern: $SRC = new URLSearchParams(...).getAll(...)
+      - pattern: $SRC = decodeURIComponent(...)
+      - pattern: $SRC = decodeURI(...)
+      - pattern: document.getElementById(...).value
+  - patterns:
+    - focus-metavariable: $SRC
+    - pattern-either:
+      - pattern: $SRC = location.$PROP
+      - pattern: $SRC = document.location.$PROP
+      - pattern: $SRC = window.location.$PROP
+  pattern-sinks:
+  - patterns:
+    - focus-metavariable: $SINK
+    - pattern-either:
+      - pattern: $EL.innerHTML = $SINK
+      - pattern: $EL.outerHTML = $SINK
+      - pattern: $EL.insertAdjacentHTML($A, $SINK)
+      - pattern: document.write($SINK)
+      - pattern: document.writeln($SINK)
+      - pattern: eval($SINK)
+      - pattern: Function($SINK)
+      - pattern: setTimeout($SINK, ...)
+      - pattern: setInterval($SINK, ...)
+      - pattern: $EL.setAttribute($X, $SINK)
+      - pattern: $EL.srcdoc = $SINK
+  pattern-sanitizers:
+  - pattern-either:
+    - pattern: DOMPurify.sanitize(...)
+    - pattern: $S.sanitize(...)
+    - pattern: $S.escape(...)
+    - pattern: _.escape(...)
+    - pattern: encodeURIComponent(...)
+- id: bb-open-redirect
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: Potential open redirect - URL param flows to navigation sink
+  metadata:
+    category: security
+    cwe: 'CWE-601: URL Redirection to Untrusted Site (''Open Redirect'')'
+    owasp: A01:2021 - Broken Access Control
+    confidence: MEDIUM
+    impact: MEDIUM
+    subcategory: vuln
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - focus-metavariable: $SRC
+    - pattern-either:
+      - pattern: $SRC = new URLSearchParams($P).get(...)
+      - pattern: $SRC = new URLSearchParams($P).getAll(...)
+      - pattern: $SRC = new URL($P).searchParams.get(...)
+      - patterns:
+        - pattern-inside: '$Q = new URLSearchParams(...)
+
+            ...
+
+            '
+        - pattern: $Q.get(...)
+        - focus-metavariable: $Q
+      - pattern: location.search
+      - pattern: location.hash
+  pattern-sinks:
+  - patterns:
+    - focus-metavariable: $SINK
+    - pattern-either:
+      - pattern: location.href = $SINK
+      - pattern: location.replace($SINK)
+      - pattern: window.location = $SINK
+      - pattern: document.location = $SINK
+      - pattern: window.open($SINK, ...)
+      - pattern: $W.location.assign($SINK)
+      - pattern: $W.location.href = $SINK
+  pattern-sanitizers:
+  - patterns:
+    - pattern-inside: "if ($X.startsWith(\"/\") || $X.startsWith($ORIGIN)) {\n  ...\n  $SINK = $X\n  ...\n}\n"
+    - focus-metavariable: $X
+- id: bb-prototype-pollution
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: Potential prototype pollution - user input reaches recursive merge or __proto__ assignment
+  metadata:
+    category: security
+    cwe: 'CWE-1321: Improperly Controlled Modification of Object Prototype Attributes (''Prototype Pollution'')'
+    confidence: MEDIUM
+    impact: HIGH
+    subcategory: vuln
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - focus-metavariable: $SRC
+    - pattern-either:
+      - pattern: location.search
+      - pattern: location.hash
+      - pattern: location.href
+      - pattern: $SRC = JSON.parse(...)
+      - patterns:
+        - pattern-inside: '$Q = new URLSearchParams(...)
+
+            ...
+
+            '
+        - pattern: $Q.get(...)
+        - focus-metavariable: $Q
+      - pattern: $SRC = new URLSearchParams(...).get(...)
+      - pattern: $SRC = document.location.$PROP
+      - pattern: $SRC = window.location.$PROP
+  pattern-sinks:
+  - patterns:
+    - focus-metavariable: $SINK
+    - pattern-either:
+      - pattern: $OBJ['__proto__'] = $SINK
+      - pattern: $OBJ.__proto__ = $SINK
+      - pattern: $OBJ.prototype = $SINK
+      - pattern: Object.assign($OBJ, $SINK)
+      - pattern: $LODASH.merge($OBJ, $SINK)
+      - pattern: $LODASH.defaultsDeep($OBJ, $SINK)
+      - pattern: $OBJ.merge($OBJ, $SINK)
+- id: bb-postmessage-no-origin-check
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  message: postMessage handler without strong origin check
+  metadata:
+    category: security
+    cwe: 'CWE-346: Origin Validation Error'
+    confidence: HIGH
+    subcategory: vuln
+  patterns:
+  - pattern-either:
+    - pattern: addEventListener('message', function $F($E) { ... })
+    - pattern: window.addEventListener('message', function $F($E) { ... })
+    - pattern: window.addEventListener('message', ($E) => { ... })
+    - pattern: addEventListener('message', ($E) => { ... })
+    - pattern: $W.onmessage = function $F($E) { ... }
+  - pattern-not-inside: "addEventListener('message', function $F($E) {\n  ...\n  if ($E.origin === \"...\") {\n    ...\n \
+      \ }\n  ...\n})\n"
+  - pattern-not-inside: "window.addEventListener('message', function $F($E) {\n  ...\n  if ($E.origin === \"...\") {\n   \
+      \ ...\n  }\n  ...\n})\n"
+- id: bb-react-dangerouslysetinnerhtml
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: React dangerouslySetInnerHTML with controllable HTML
+  metadata:
+    category: security
+    cwe: CWE-79
+    confidence: MEDIUM
+    impact: HIGH
+    subcategory: vuln
+  patterns:
+  - pattern-either:
+    - pattern: $EL.dangerouslySetInnerHTML
+    - pattern: dangerouslySetInnerHTML
+  - pattern-either:
+    - pattern-inside: '$SRC = ...
+
+        ...
+
+        $EL.prop = {__html: $SRC}
+
+        '
+    - pattern-inside: '$SRC = new URLSearchParams(...).get(...)
+
+        ...
+
+        $X = {__html: $SRC}
+
+        '
+- id: bb-jwt-in-localstorage-exposure-tuned-v2
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: "Potential sensitive token stored in web storage \u2014 verify JWT-like"
+  metadata:
+    category: security
+    cwe: 'CWE-922: Insecure Storage of Sensitive Information'
+    confidence: MEDIUM
+    impact: MEDIUM
+    subcategory: vuln
+  mode: search
+  patterns:
+  - pattern-either:
+    - pattern: localStorage.setItem($KEY, $VAL)
+    - pattern: sessionStorage.setItem($KEY, $VAL)
+  - metavariable-regex:
+      metavariable: $KEY
+      regex: (?i)(^|_)(access_token|id_token|refresh_token|jwt|auth_token|bearer_token|token)($|_|-|$)
+  - metavariable-regex:
+      metavariable: $VAL
+      regex: (eyJ[a-zA-Z0-9_-]{10,}\.)
+  - pattern-not: 'sessionStorage.setItem("__cz_...", ...)
+
+      '
+  - pattern-not: 'localStorage.setItem("__cz_...", ...)
+
+      '
+- id: bb-manual-referrer-hostname-weak-check
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: Weak referrer hostname validation via indexOf/includes
+  metadata:
+    category: security
+    cwe: CWE-346
+  patterns:
+  - pattern-either:
+    - pattern: document.referrer
+    - pattern: $URL.hostname.indexOf(...)
+    - pattern: $URL.hostname.includes(...)
+    - pattern: new URL($X).hostname.indexOf(...)
+- id: bb-manual-window-name-xss
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: Potential DOM XSS via window.name
+  metadata:
+    category: security
+    cwe: CWE-79
+  patterns:
+  - pattern-either:
+    - pattern: window.name
+    - pattern: $X = window.name
+- id: bb-manual-postmessage-wildcard-targetorigin
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: "Potential postMessage data leak \u2014 wildcard"
+  metadata:
+    category: security
+    cwe: CWE-346
+    confidence: MEDIUM
+    impact: LOW
+    subcategory: vuln
+  patterns:
+  - pattern-either:
+    - pattern: $WIN.postMessage($MSG, "*")
+    - pattern: $WIN.postMessage($MSG, '*')
+    - pattern: window.parent.postMessage($MSG, "*")
+    - pattern: window.parent.postMessage($MSG, '*')
+    - pattern: window.top.postMessage($MSG, "*")
+    - pattern: parent.postMessage($MSG, "*")
+- id: bb-manual-thirdparty-loader-v4-allowlist-strict
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: Potential XSS via third-party loader ScriptTag merging options via Object.assign then assigning event handler via
+    setAttribute(on*)
+  metadata:
+    category: security
+    cwe: CWE-79
+    confidence: MEDIUM
+    impact: MEDIUM
+    subcategory: vuln
+  patterns:
+  - pattern-either:
+    - pattern-inside: "$X = class {\n  ...\n  getScriptTag() {\n    ...\n    $K.startsWith(\"on\") ? $EL.setAttribute($K,\
+        \ $VAL) : ...\n    ...\n  }\n  ...\n}\n"
+    - pattern-inside: "class ScriptTag {\n  ...\n  getScriptTag() {\n    ...\n    $K.startsWith(\"on\") ? $EL.setAttribute($K,\
+        \ $VAL) : ...\n    ...\n  }\n  ...\n}\n"
+    - pattern-inside: "class $CLS {\n  ...\n  getScriptTag() {\n    ...\n    $K.startsWith(\"on\") ? $EL.setAttribute($K,\
+        \ $VAL) : ...\n    ...\n  }\n}\n"
+  - pattern-not-inside: "if ($K === \"async\" || $K === \"defer\" || $K === \"src\" || $K === \"type\" || $K === \"nonce\"\
+      \ || $K.startsWith(\"data-\")) {\n  ...\n}\n"
+  - focus-metavariable: $VAL
+- id: bb-manual-nextjs-hardnav-open-redirect-v2
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  message: "Potential open redirect via Next.js router.push/replace \u2014 URLSearchParams flows without same-origin sanitizer\
+    \ (v2 adds isLocalURL/startsWith sanitizers)"
+  metadata:
+    category: security
+    cwe: 'CWE-601: URL Redirection to Untrusted Site (''Open Redirect'')'
+    owasp: A01:2021 - Broken Access Control
+    confidence: MEDIUM
+    impact: LOW
+    subcategory: vuln
+    technology:
+    - nextjs
+    - open-redirect
+    - router
+    - location
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - focus-metavariable: $SRC
+    - pattern-either:
+      - pattern: $SRC = new URLSearchParams(...).get(...)
+      - patterns:
+        - pattern-inside: '$Q = new URLSearchParams(...)
+
+            ...
+
+            '
+        - pattern: $Q.get(...)
+        - focus-metavariable: $Q
+      - pattern: $SRC = new URLSearchParams(...).getAll(...)
+      - pattern: $SRC = $PROP.searchParams.get(...)
+  pattern-sinks:
+  - patterns:
+    - focus-metavariable: $SINK
+    - pattern-either:
+      - pattern: $ROUTER.push($SINK)
+      - pattern: $ROUTER.replace($SINK)
+      - pattern: Router.push($SINK)
+      - pattern: Router.replace($SINK)
+      - pattern: nextRouter.push($SINK)
+      - pattern: nextRouter.replace($SINK)
+      - pattern: router.push($SINK)
+      - pattern: router.replace($SINK)
+      - pattern: location.href = $SINK
+      - pattern: location.replace($SINK)
+      - pattern: $ROUTER.navigate($SINK)
+  metavariable-regex:
+  - metavariable: $ROUTER
+    regex: ^(router|Router|nextRouter|navigation|next)$
+  pattern-sanitizers:
+  - patterns:
+    - pattern-either:
+      - pattern: "if ($SINK.startsWith(\"/\")) {\n  ...\n}\n"
+      - pattern: "if ($SINK.startsWith(\"/\") && !$SINK.startsWith(\"//\")) {\n  ...\n}\n"
+      - pattern: "if (isLocalURL($SINK)) {\n  ...\n}\n"
+      - pattern: "if ($ALLOWLIST.includes($SINK)) {\n  ...\n}\n"
+- id: bb-cfemail-innerhtml-limited-escape-v2
+  languages:
+  - javascript
+  - typescript
+  severity: INFO
+  message: "Cloudflare email decoder innerHTML with only double-quote escaping \u2014 detached parsing INFO"
+  metadata:
+    category: security
+    cwe: CWE-79
+    confidence: MEDIUM
+    impact: LOW
+    subcategory: vuln
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern: $D.innerHTML = '<a href="' + $E.replace(/"/g, "&quot;") + '"></a>'
+      - focus-metavariable: $E
+    - patterns:
+      - pattern: $D.innerHTML = "<a href=\"" + $E.replace(/"/g, "&quot;") + "\"></a>"
+      - focus-metavariable: $E
+    - patterns:
+      - pattern-inside: "$A = $EL.getAttribute(\"data-cfemail\")\n          ...\n          $E = ...\n          ...\n     \
+          \     $D.innerHTML = ..."
+      - pattern: $D.innerHTML = $X + $E.replace(/"/g, "&quot;") + $Y
+      - focus-metavariable: $E
+  - pattern-not: $EL.textContent = ...

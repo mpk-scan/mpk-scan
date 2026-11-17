@@ -12,6 +12,7 @@ import shutil
 import jsbeautifier
 from urllib.parse import urljoin, urlparse
 import concurrent.futures
+import threading
 import tldextract
 
 # ------------------------------------------------------------------------------------------
@@ -28,7 +29,27 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 LOG_FILE = os.path.join(OUTPUT_PATH, 'log.txt')
 
-DEFAULT_RULES_DIRECTORY = "production_rules"
+DEFAULT_RULES_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "production_rules")
+
+# Optional research headers, set via env so no identity is hardcoded.
+# e.g. MPK_SCAN_RESEARCH_ID=your-handle MPK_SCAN_BUG_BOUNTY_PROGRAM=program-name
+BB_HEADERS = {"User-Agent": "mpk-scan/1.0"}
+_RESEARCH_ID = os.getenv("MPK_SCAN_RESEARCH_ID", "")
+_BUG_BOUNTY_PROGRAM = os.getenv("MPK_SCAN_BUG_BOUNTY_PROGRAM", "")
+if _RESEARCH_ID:
+    BB_HEADERS["X-HackerOne-Research"] = _RESEARCH_ID
+    BB_HEADERS["User-Agent"] = f"mpk-scan-research {_RESEARCH_ID}"
+if _BUG_BOUNTY_PROGRAM:
+    BB_HEADERS["X-Bug-Bounty"] = _BUG_BOUNTY_PROGRAM
+
+# 3rd-party CDN/domains to skip to stay in first-party scope and avoid hammering out-of-scope assets
+SKIP_THIRD_PARTY = ["adobedtm.com", "trustarc.com", "hlx.page", "consent.", "googletagmanager.com", "hotjar.com", "segment.io", "intercom.io"]
+
+# Serialize all outbound requests across worker threads. A 250 ms minimum
+# start-to-start interval keeps the whole process at no more than 4 rps.
+REQUEST_INTERVAL_SECONDS = float(os.getenv("MPK_SCAN_REQUEST_INTERVAL_SECONDS", "0.25"))
+_REQUEST_LOCK = threading.Lock()
+_LAST_REQUEST_STARTED = 0.0
 
 # Import file from other directories
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -63,6 +84,17 @@ def log_print(message):
     with open(LOG_FILE, 'a') as log_file:
         log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
     print(message)
+
+
+def throttled_get(url, **kwargs):
+    """Issue a GET while enforcing the process-wide request-rate ceiling."""
+    global _LAST_REQUEST_STARTED
+    with _REQUEST_LOCK:
+        wait = REQUEST_INTERVAL_SECONDS - (time.monotonic() - _LAST_REQUEST_STARTED)
+        if wait > 0:
+            time.sleep(wait)
+        _LAST_REQUEST_STARTED = time.monotonic()
+    return requests.get(url, **kwargs)
 
 # ------------------------------------------------------------------------------------------
 
@@ -124,7 +156,7 @@ class Mpkscan:
         '''For a given url, extract all js associated with it (inline and external)'''
         log_print(f"Processing {url}...")
         try:
-            response = requests.get(url, timeout=5)
+            response = throttled_get(url, timeout=5, headers=BB_HEADERS)
             if response.status_code != 200:
                 return
         except requests.exceptions.RequestException as e:
@@ -154,9 +186,13 @@ class Mpkscan:
             
             for js_url in external_js_links:
                 external_url = urljoin(url, js_url)
+                # Skip 3rd-party CDNs / consent / analytics to stay first-party and avoid hammering out-of-scope
+                if any(skip in external_url for skip in SKIP_THIRD_PARTY):
+                    log_print(f"[SKIP] 3rd-party filtered: {external_url}")
+                    continue
                 if external_url not in self.external_files:
                     try:
-                        ext_resp = requests.get(external_url, timeout=5)  # line 161
+                        ext_resp = throttled_get(external_url, timeout=5, headers=BB_HEADERS)
                         if ext_resp.status_code != 200:
                             continue  # line 163 - was `return`
                     except requests.exceptions.RequestException as e:
@@ -278,8 +314,19 @@ class Mpkscan:
                 # Move the temp file into the vuln_dir
                 shutil.move(temp_file_path, os.path.join(vuln_dir, os.path.basename(temp_file_path)))
             else:
-                # Delete the temp file
-                os.remove(temp_file_path)
+                # Keep 0-hit files for manual LLM audit (cron v4) - move to kept/
+                kept_dir = os.path.join(OUTPUT_PATH, "kept")
+                os.makedirs(kept_dir, exist_ok=True)
+                try:
+                    shutil.move(temp_file_path, os.path.join(kept_dir, os.path.basename(temp_file_path)))
+                    log_print(f"[KEEP] 0-hit file moved to kept/: {os.path.basename(temp_file_path)} for manual audit")
+                except Exception as ke:
+                    # fallback: try keep in TEMP_DIR if move fails
+                    log_print(f"[KEEP-FAIL] {ke}, removing instead")
+                    try:
+                        os.remove(temp_file_path)
+                    except:
+                        pass
 
         except Exception as e:
             # Log any exceptions that might occur during the subprocess execution
